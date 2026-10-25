@@ -26,6 +26,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+import `in`.ignishers.milkmanager2.R
 import `in`.ignishers.milkmanager2.ui.BaseViewModel
 
 class PointOfSaleViewModel(
@@ -82,12 +83,12 @@ class PointOfSaleViewModel(
             calculateAmount()
 
             // Load route customers if route changed or not yet loaded
-            val routeId = cust?.routeGroupId
+            val routeId = cust?.routeGroupId?.takeIf { it > 0L }
             if (routeCustomersJob == null || currentRouteId != routeId) {
                 currentRouteId = routeId
                 routeCustomersJob?.cancel()
                 routeCustomersJob = viewModelScope.launch {
-                    val flow = if (routeId != null && routeId > 0L) {
+                    val flow = if (routeId != null) {
                         customerRepository.getCustomersByRoute(routeId)
                     } else {
                         customerRepository.getRootCustomers()
@@ -128,36 +129,37 @@ class PointOfSaleViewModel(
         }
     }
 
-    fun navigateCustomer(isNext: Boolean): String? {
+    fun navigateCustomer(isNext: Boolean): Int? {
         val currentList = _routeCustomers.value
-        val currentId = _customer.value?.id ?: return "Customer not loaded"
+        val currentCust = _customer.value ?: return R.string.customer_not_loaded
+        val currentId = currentCust.id ?: return R.string.customer_not_loaded
 
         if (currentList.isEmpty()) {
-            return if (isNext) "No next customer in this route" else "No previous customer in this route"
+            return if (isNext) R.string.no_next_customer else R.string.no_prev_customer
         }
 
         val currentIndex = currentList.indexOfFirst { it.id == currentId }
         if (currentIndex == -1) {
-            return if (isNext) "No next customer in this route" else "No previous customer in this route"
+            return if (isNext) R.string.no_next_customer else R.string.no_prev_customer
         }
 
         if (isNext) {
             if (currentIndex < currentList.size - 1) {
                 val nextCustomer = currentList[currentIndex + 1]
-                val nextId = nextCustomer.id ?: return "Invalid customer"
+                val nextId = nextCustomer.id ?: return R.string.invalid_customer
                 loadCustomer(nextId)
                 return null
             } else {
-                return "No next customer in this route"
+                return R.string.no_next_customer
             }
         } else {
             if (currentIndex > 0) {
                 val prevCustomer = currentList[currentIndex - 1]
-                val prevId = prevCustomer.id ?: return "Invalid customer"
+                val prevId = prevCustomer.id ?: return R.string.invalid_customer
                 loadCustomer(prevId)
                 return null
             } else {
-                return "No previous customer in this route"
+                return R.string.no_prev_customer
             }
         }
     }
@@ -416,17 +418,40 @@ class PointOfSaleViewModel(
             emptyList()
         }
 
-        // Group by month YYYY-MM
-        val monthKeys = mutableSetOf<String>()
-        transList.forEach { t -> t.date?.takeIf { it.length >= 7 }?.let { monthKeys.add(it.substring(0, 7)) } }
-        payList.forEach { p -> p.date?.takeIf { it.length >= 7 }?.let { monthKeys.add(it.substring(0, 7)) } }
-
-        if (monthKeys.isEmpty()) {
-            val defaultKey = if (startDate.length >= 7) startDate.substring(0, 7) else _currentDate.value.substring(0, 7)
-            monthKeys.add(defaultKey)
+        // Determine all months in the selected range
+        val sortedMonths = if (startDate.length >= 7 && endDate.length >= 7) {
+            try {
+                val startYm = YearMonth.parse(startDate.substring(0, 7))
+                val endYm = YearMonth.parse(endDate.substring(0, 7))
+                val list = mutableListOf<String>()
+                var curr = startYm
+                while (!curr.isAfter(endYm)) {
+                    list.add(curr.toString())
+                    curr = curr.plusMonths(1)
+                }
+                if (list.isEmpty()) {
+                    list.add(startYm.toString())
+                }
+                list
+            } catch (_: Exception) {
+                val monthKeys = mutableSetOf<String>()
+                transList.forEach { t -> t.date?.takeIf { it.length >= 7 }?.let { monthKeys.add(it.substring(0, 7)) } }
+                payList.forEach { p -> p.date?.takeIf { it.length >= 7 }?.let { monthKeys.add(it.substring(0, 7)) } }
+                if (monthKeys.isEmpty()) {
+                    monthKeys.add(_currentDate.value.substring(0, 7))
+                }
+                monthKeys.sorted()
+            }
+        } else {
+            val monthKeys = mutableSetOf<String>()
+            transList.forEach { t -> t.date?.takeIf { it.length >= 7 }?.let { monthKeys.add(it.substring(0, 7)) } }
+            payList.forEach { p -> p.date?.takeIf { it.length >= 7 }?.let { monthKeys.add(it.substring(0, 7)) } }
+            if (monthKeys.isEmpty()) {
+                val defaultKey = if (startDate.length >= 7) startDate.substring(0, 7) else _currentDate.value.substring(0, 7)
+                monthKeys.add(defaultKey)
+            }
+            monthKeys.sorted()
         }
-
-        val sortedMonths = monthKeys.sorted()
         val monthDataList = mutableListOf<MonthStatementData>()
 
         // Calculate initial opening balance for first month in range

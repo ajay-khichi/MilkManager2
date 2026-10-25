@@ -2,10 +2,12 @@ package `in`.ignishers.milkmanager2.ui.pos
 
 import android.app.DatePickerDialog
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,13 +31,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import `in`.ignishers.milkmanager2.R
 import org.koin.androidx.compose.koinViewModel
 import java.math.BigDecimal
@@ -42,11 +57,6 @@ import java.util.Calendar
 import java.util.Locale
 import `in`.ignishers.milkmanager2.models.DailyTransaction
 import `in`.ignishers.milkmanager2.models.Payment
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import `in`.ignishers.milkmanager2.models.Customer
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -69,8 +79,12 @@ fun PointOfSaleScreen(
 ) {
     val context = LocalContext.current
 
+    var initialLoaded by remember { mutableStateOf(false) }
     LaunchedEffect(customerId) {
-        viewModel.loadCustomer(customerId)
+        if (!initialLoaded) {
+            viewModel.loadCustomer(customerId)
+            initialLoaded = true
+        }
     }
 
     val customer by viewModel.customer.collectAsState()
@@ -224,13 +238,17 @@ fun PointOfSaleScreen(
                         },
                         onDragEnd = {
                             if (totalDragX < -swipeThreshold) {
-                                // Left swipe -> Next Month Bill
-                                val target = (currentViewingMonth ?: YearMonth.now()).plusMonths(1)
-                                openBillForMonth(target)
+                                // Left swipe -> Next Customer in route
+                                val msgResId = viewModel.navigateCustomer(isNext = true)
+                                if (msgResId != null) {
+                                    Toast.makeText(context, context.getString(msgResId), Toast.LENGTH_SHORT).show()
+                                }
                             } else if (totalDragX > swipeThreshold) {
-                                // Right swipe -> Previous Month Bill
-                                val target = (currentViewingMonth ?: YearMonth.now()).minusMonths(1)
-                                openBillForMonth(target)
+                                // Right swipe -> Previous Customer in route
+                                val msgResId = viewModel.navigateCustomer(isNext = false)
+                                if (msgResId != null) {
+                                    Toast.makeText(context, context.getString(msgResId), Toast.LENGTH_SHORT).show()
+                                }
                             }
                             totalDragX = 0f
                         },
@@ -244,8 +262,6 @@ fun PointOfSaleScreen(
                     )
                 }
         ) {
-            var cardDragY by remember { mutableFloatStateOf(0f) }
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -256,24 +272,7 @@ fun PointOfSaleScreen(
             // Customer Due & Balance Info Card
             Card(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .pointerInput(Unit) {
-                        detectVerticalDragGestures(
-                            onDragStart = { cardDragY = 0f },
-                            onDragEnd = {
-                                if (cardDragY > 40f) {
-                                    openBillForMonth(YearMonth.now())
-                                }
-                                cardDragY = 0f
-                            },
-                            onDragCancel = { cardDragY = 0f },
-                            onVerticalDrag = { _, dragAmount ->
-                                if (dragAmount > 0) {
-                                    cardDragY += dragAmount
-                                }
-                            }
-                        )
-                    },
+                    .fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
@@ -345,29 +344,6 @@ fun PointOfSaleScreen(
                                 Text(stringResource(R.string.pay), fontWeight = FontWeight.Bold)
                             }
                         }
-                    }
-
-                    // Swipe down hint / Quick bill tap
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 10.dp)
-                            .clickable { openBillForMonth(YearMonth.now()) },
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Filled.KeyboardArrowDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Swipe down or tap for Current Month Bill",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
                     }
                 }
             }
@@ -444,7 +420,12 @@ fun PointOfSaleScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Dropdown Menu Button for Quick Quantities
-                        Box(modifier = Modifier.weight(1f)) {
+                        var buttonWidthPx by remember { mutableIntStateOf(0) }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .onSizeChanged { buttonWidthPx = it.width }
+                        ) {
                             OutlinedButton(
                                 onClick = { showQuickMenu = true },
                                 modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -459,29 +440,65 @@ fun PointOfSaleScreen(
                                     Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(18.dp))
                                 }
                             }
-                            DropdownMenu(
-                                expanded = showQuickMenu,
-                                onDismissRequest = { showQuickMenu = false }
-                            ) {
-                                val quickOptions = listOf(
-                                    "10rs" to "₹10",
-                                    "20rs" to "₹20",
-                                    "30rs" to "₹30",
-                                    "50rs" to "₹50",
-                                    "250ml" to "250 ml",
-                                    "500ml" to "500 ml",
-                                    "750ml" to "750 ml",
-                                    "1l" to "1 Litre"
-                                )
-                                quickOptions.forEach { (key, label) ->
-                                    DropdownMenuItem(
-                                        text = { Text(label, fontWeight = FontWeight.Medium) },
-                                        onClick = {
-                                            showQuickMenu = false
-                                            viewModel.addQuickEntry(key)
-                                            Toast.makeText(context, context.getString(R.string.added_entry, label), Toast.LENGTH_SHORT).show()
+                            if (showQuickMenu) {
+                                val density = LocalDensity.current
+                                Popup(
+                                    onDismissRequest = { showQuickMenu = false },
+                                    popupPositionProvider = remember(density) {
+                                        object : PopupPositionProvider {
+                                            override fun calculatePosition(
+                                                anchorBounds: IntRect,
+                                                windowSize: IntSize,
+                                                layoutDirection: LayoutDirection,
+                                                popupContentSize: IntSize
+                                            ): IntOffset {
+                                                // Always open strictly below anchor (never flip upwards)
+                                                val x = anchorBounds.left.coerceIn(0, maxOf(0, windowSize.width - popupContentSize.width))
+                                                val y = anchorBounds.bottom + with(density) { 4.dp.roundToPx() }
+                                                return IntOffset(x, y)
+                                            }
                                         }
-                                    )
+                                    },
+                                    properties = PopupProperties(focusable = true)
+                                ) {
+                                    val menuWidthDp = with(density) { buttonWidthPx.toDp() }
+                                    Surface(
+                                        modifier = Modifier
+                                            .width(if (menuWidthDp > 100.dp) menuWidthDp else 180.dp)
+                                            .heightIn(max = 260.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.surface,
+                                        tonalElevation = 6.dp,
+                                        shadowElevation = 8.dp,
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .padding(vertical = 4.dp)
+                                                .verticalScroll(rememberScrollState())
+                                        ) {
+                                            val quickOptions = listOf(
+                                                "10rs" to "₹10",
+                                                "20rs" to "₹20",
+                                                "30rs" to "₹30",
+                                                "50rs" to "₹50",
+                                                "250ml" to "250 ml",
+                                                "500ml" to "500 ml",
+                                                "750ml" to "750 ml",
+                                                "1l" to "1 Litre"
+                                            )
+                                            quickOptions.forEach { (key, label) ->
+                                                DropdownMenuItem(
+                                                    text = { Text(label, fontWeight = FontWeight.Medium) },
+                                                    onClick = {
+                                                        showQuickMenu = false
+                                                        viewModel.addQuickEntry(key)
+                                                        Toast.makeText(context, context.getString(R.string.added_entry, label), Toast.LENGTH_SHORT).show()
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -812,6 +829,7 @@ fun PointOfSaleScreen(
                     if (reportData != null) {
                         when (action) {
                             BillAction.VIEW -> {
+                                currentViewingMonth = null
                                 statementPreviewData = reportData
                             }
                             BillAction.SHARE -> {
@@ -851,12 +869,12 @@ fun PointOfSaleScreen(
                 val file = PDFGenerator.generateCustomerMonthlyPDF(context, statementPreviewData!!)
                 PDFGenerator.openFile(context, file)
             },
-            onNavigateMonth = { isNext ->
-                val targetMonth = (currentViewingMonth ?: YearMonth.now()).let {
+            onNavigateMonth = if (currentViewingMonth != null) { isNext ->
+                val targetMonth = currentViewingMonth!!.let {
                     if (isNext) it.plusMonths(1) else it.minusMonths(1)
                 }
                 openBillForMonth(targetMonth)
-            }
+            } else null
         )
     }
 }
@@ -1733,7 +1751,7 @@ fun StatementPreviewDialog(
     onOpenPdf: () -> Unit,
     onNavigateMonth: ((Boolean) -> Unit)? = null
 ) {
-    var selectedMonthIndex by remember { mutableIntStateOf(0) }
+    var selectedMonthIndex by remember(reportData) { mutableIntStateOf(0) }
     val currentMonthData = reportData.months.getOrNull(selectedMonthIndex) ?: reportData.months.firstOrNull()
 
     val density = LocalDensity.current
@@ -1747,7 +1765,7 @@ fun StatementPreviewDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.98f)
-                .fillMaxHeight(0.95f)
+                .fillMaxHeight(0.96f)
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragStart = { dialogDragX = 0f },
@@ -1780,255 +1798,388 @@ fun StatementPreviewDialog(
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(12.dp)
-            ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = reportData.customer.name ?: "Customer",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = currentMonthData?.monthTitle ?: reportData.title,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Filled.Close, contentDescription = "Close")
-                    }
-                }
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val isCompact = maxWidth < 480.dp
+                val horizontalPad = if (isCompact) 8.dp else 12.dp
+                val verticalPad = if (isCompact) 8.dp else 12.dp
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
-
-                // Month Switcher (Left/Right Month Navigation)
-                val canGoPrev = onNavigateMonth != null || selectedMonthIndex > 0
-                val canGoNext = onNavigateMonth != null || selectedMonthIndex < reportData.months.size - 1
-
-                Row(
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxSize()
+                        .padding(horizontal = horizontalPad, vertical = verticalPad)
                 ) {
-                    IconButton(
-                        onClick = {
-                            if (onNavigateMonth != null) {
-                                onNavigateMonth(false)
-                            } else if (selectedMonthIndex > 0) {
-                                selectedMonthIndex--
-                            }
-                        },
-                        enabled = canGoPrev
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Month")
-                    }
-
-                    Text(
-                        text = currentMonthData?.monthTitle ?: reportData.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    IconButton(
-                        onClick = {
-                            if (onNavigateMonth != null) {
-                                onNavigateMonth(true)
-                            } else if (selectedMonthIndex < reportData.months.size - 1) {
-                                selectedMonthIndex++
-                            }
-                        },
-                        enabled = canGoNext
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Month")
-                    }
-                }
-
-                // Month Summary Box
-                if (currentMonthData != null) {
-                    Card(
+                    // Header
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
-                        shape = RoundedCornerShape(10.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(stringResource(R.string.opening_due_format, currentMonthData.openingBalance.toPlainString()), style = MaterialTheme.typography.bodySmall)
-                                Text(stringResource(R.string.milk_bill_format, currentMonthData.totalMilk.toPlainString(), currentMonthData.totalBill.toPlainString()), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = reportData.customer.name ?: "Customer",
+                                style = if (isCompact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = if (reportData.months.size > 1) reportData.title else (currentMonthData?.monthTitle ?: reportData.title),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Filled.Close, contentDescription = "Close")
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                    // Month Switcher (Left/Right Month Navigation)
+                    val canGoPrev = onNavigateMonth != null || selectedMonthIndex > 0
+                    val canGoNext = onNavigateMonth != null || selectedMonthIndex < reportData.months.size - 1
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = {
+                                if (onNavigateMonth != null) {
+                                    onNavigateMonth(false)
+                                } else if (selectedMonthIndex > 0) {
+                                    selectedMonthIndex--
+                                }
+                            },
+                            enabled = canGoPrev
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Month")
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = currentMonthData?.monthTitle ?: reportData.title,
+                                fontSize = if (isCompact) 18.sp else 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (reportData.months.size > 1) {
+                                Text(
+                                    text = "${selectedMonthIndex + 1} of ${reportData.months.size} (${reportData.title})",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                        }
+
+                        IconButton(
+                            onClick = {
+                                if (onNavigateMonth != null) {
+                                    onNavigateMonth(true)
+                                } else if (selectedMonthIndex < reportData.months.size - 1) {
+                                    selectedMonthIndex++
+                                }
+                            },
+                            enabled = canGoNext
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Month")
+                        }
+                    }
+
+                    // Month Summary Box (Adaptive 2-Column Grid)
+                    if (currentMonthData != null) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text(stringResource(R.string.month_paid_format, currentMonthData.paidInMonth.toPlainString()), style = MaterialTheme.typography.bodySmall, color = Color(0xFF10B981))
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(stringResource(R.string.final_due), style = MaterialTheme.typography.bodySmall)
-                                    Text(
-                                        text = "₹${currentMonthData.finalDue}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (currentMonthData.finalDue > BigDecimal.ZERO) MaterialTheme.colorScheme.error else Color(0xFF10B981)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                // Row 1: Opening Due (Left) & Milk Bill (Right)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(R.string.opening_due_format, "").replace(":", "").replace("₹", "").trim(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "₹${currentMonthData.openingBalance.toPlainString()}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (currentMonthData.openingBalance > BigDecimal.ZERO) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = stringResource(R.string.milk_bill_format, "", "").substringBefore(":").trim().takeIf { it.isNotBlank() } ?: "Milk Bill",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "${currentMonthData.totalMilk.toPlainString()}L (₹${currentMonthData.totalBill.toPlainString()})",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+                                // Row 2: Paid in Month (Left) & Final Due + Status Badge (Right)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(R.string.month_paid_format, "").replace(":", "").replace("₹", "").trim(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "₹${currentMonthData.paidInMonth.toPlainString()}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF10B981),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = stringResource(R.string.final_due).replace(":", "").trim(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.End
+                                        ) {
+                                            Text(
+                                                text = "₹${currentMonthData.finalDue}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (currentMonthData.finalDue > BigDecimal.ZERO) MaterialTheme.colorScheme.error else Color(0xFF10B981),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (currentMonthData.isPaid) Color(0xFF10B981).copy(alpha = 0.18f) else MaterialTheme.colorScheme.error.copy(alpha = 0.18f)
+                                            ) {
+                                                Text(
+                                                    text = if (currentMonthData.isPaid) "PAID" else "PENDING",
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = if (currentMonthData.isPaid) Color(0xFF10B981) else MaterialTheme.colorScheme.error,
+                                                    maxLines = 1,
+                                                    softWrap = false
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (currentMonthData.postMonthPayments.isNotEmpty()) {
+                                    val postPaidTotal = currentMonthData.postMonthPayments.sumOf { it.amount }
                                     Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = if (currentMonthData.isPaid) Color(0xFF10B981).copy(alpha = 0.2f) else MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = Color(0xFF10B981).copy(alpha = 0.12f),
+                                        shape = RoundedCornerShape(4.dp)
                                     ) {
                                         Text(
-                                            text = if (currentMonthData.isPaid) "PAID" else "PENDING",
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (currentMonthData.isPaid) Color(0xFF10B981) else MaterialTheme.colorScheme.error
+                                            text = "Settlement: -₹$postPaidTotal paid in subsequent month",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                            color = Color(0xFF047857),
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                 }
                             }
-                            if (currentMonthData.postMonthPayments.isNotEmpty()) {
-                                val postPaidTotal = currentMonthData.postMonthPayments.sumOf { it.amount }
-                                Text(
-                                    text = "Settlement: - ₹$postPaidTotal paid in subsequent month",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF10B981),
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
-                // 16 * 16 Table Header (Date, Morning, Evening, Payment on Left & Right)
-                Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
+                    // 16 * 16 Table Header (Date, Morning, Evening, Payment on Left & Right)
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 2.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            DayHalfHeader(isCompact = isCompact, modifier = Modifier.weight(1f))
+                            Box(
+                                modifier = Modifier
+                                    .width(1.dp)
+                                    .height(16.dp)
+                                    .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f))
+                            )
+                            DayHalfHeader(isCompact = isCompact, modifier = Modifier.weight(1f))
+                        }
+                    }
+
+                    // 16 * 16 Table Rows
+                    val tableScrollState = rememberScrollState()
+                    val daysMap = remember(currentMonthData) {
+                        currentMonthData?.days?.associateBy { it.day } ?: emptyMap()
+                    }
+                    val daysInMonth = remember(currentMonthData) {
+                        currentMonthData?.days?.size ?: 31
+                    }
+
+                    Column(
                         modifier = Modifier
+                            .weight(1f)
                             .fillMaxWidth()
-                            .padding(horizontal = 2.dp, vertical = 6.dp),
+                            .verticalScroll(tableScrollState)
+                    ) {
+                        for (i in 1..16) {
+                            val leftDay = i
+                            val rightDay = i + 16
+
+                            val leftItem = daysMap[leftDay]
+                            val rightItem = if (rightDay <= daysInMonth) daysMap[rightDay] else null
+
+                            val rowBg = if (i % 2 == 0) {
+                                MaterialTheme.colorScheme.surface
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                            }
+
+                            Surface(
+                                color = rowBg,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(IntrinsicSize.Min)
+                                        .padding(horizontal = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    DayHalfRow(
+                                        dayNum = leftDay,
+                                        dayItem = leftItem,
+                                        isCompact = isCompact,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .width(1.dp)
+                                            .fillMaxHeight()
+                                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                    )
+                                    DayHalfRow(
+                                        dayNum = if (rightDay <= daysInMonth) rightDay else null,
+                                        dayItem = rightItem,
+                                        isCompact = isCompact,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                            HorizontalDivider(
+                                thickness = 0.5.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                    // Bottom Action Buttons: PDF View, Share, Save
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        DayHalfHeader(modifier = Modifier.weight(1f))
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .height(16.dp)
-                                .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f))
-                        )
-                        DayHalfHeader(modifier = Modifier.weight(1f))
-                    }
-                }
-
-                // 16 * 16 Table Rows
-                val tableScrollState = rememberScrollState()
-                val daysMap = remember(currentMonthData) {
-                    currentMonthData?.days?.associateBy { it.day } ?: emptyMap()
-                }
-                val daysInMonth = remember(currentMonthData) {
-                    currentMonthData?.days?.size ?: 31
-                }
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(tableScrollState)
-                ) {
-                    for (i in 1..16) {
-                        val leftDay = i
-                        val rightDay = i + 16
-
-                        val leftItem = daysMap[leftDay]
-                        val rightItem = if (rightDay <= daysInMonth) daysMap[rightDay] else null
-
-                        val rowBg = if (i % 2 == 0) {
-                            MaterialTheme.colorScheme.surface
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
-                        }
-
-                        Surface(
-                            color = rowBg,
-                            modifier = Modifier.fillMaxWidth()
+                        OutlinedButton(
+                            onClick = onOpenPdf,
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                DayHalfRow(
-                                    dayNum = leftDay,
-                                    dayItem = leftItem,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .width(1.dp)
-                                        .height(34.dp)
-                                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                                )
-                                DayHalfRow(
-                                    dayNum = if (rightDay <= daysInMonth) rightDay else null,
-                                    dayItem = rightItem,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                            Text(
+                                text = stringResource(R.string.pdf_view),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
-                        HorizontalDivider(
-                            thickness = 0.5.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
-                        )
-                    }
-                }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
+                        FilledTonalButton(
+                            onClick = onShare,
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.share),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
 
-                // Bottom Action Buttons: PDF View, Share, Save
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(
-                        onClick = onOpenPdf,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
-                    ) {
-                        Text(stringResource(R.string.pdf_view), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    }
-
-                    FilledTonalButton(
-                        onClick = onShare,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
-                    ) {
-                        Text(stringResource(R.string.share), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    }
-
-                    Button(
-                        onClick = onSave,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
-                    ) {
-                        Text(stringResource(R.string.save), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Button(
+                            onClick = onSave,
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.save),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }
@@ -2037,38 +2188,50 @@ fun StatementPreviewDialog(
 }
 
 @Composable
-private fun DayHalfHeader(modifier: Modifier = Modifier) {
+private fun DayHalfHeader(isCompact: Boolean, modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier.padding(horizontal = 2.dp),
+        modifier = modifier.padding(horizontal = 1.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = stringResource(R.string.date),
-            modifier = Modifier.weight(0.7f),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            text = if (isCompact) "Dt" else stringResource(R.string.date),
+            modifier = Modifier.weight(0.75f),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = if (isCompact) 9.sp else 10.sp),
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary
+            color = MaterialTheme.colorScheme.onPrimary,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false
         )
         Text(
-            text = stringResource(R.string.morning),
-            modifier = Modifier.weight(1.2f),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            text = if (isCompact) "Morn" else stringResource(R.string.morning),
+            modifier = Modifier.weight(1.15f),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = if (isCompact) 9.sp else 10.sp),
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary
+            color = MaterialTheme.colorScheme.onPrimary,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false
         )
         Text(
-            text = stringResource(R.string.evening),
-            modifier = Modifier.weight(1.2f),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            text = if (isCompact) "Eve" else stringResource(R.string.evening),
+            modifier = Modifier.weight(1.15f),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = if (isCompact) 9.sp else 10.sp),
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary
+            color = MaterialTheme.colorScheme.onPrimary,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false
         )
         Text(
-            text = stringResource(R.string.payment),
-            modifier = Modifier.weight(1.1f),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            text = if (isCompact) "Pay" else stringResource(R.string.payment),
+            modifier = Modifier.weight(1.15f),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = if (isCompact) 9.sp else 10.sp),
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary
+            color = MaterialTheme.colorScheme.onPrimary,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }
@@ -2077,18 +2240,22 @@ private fun DayHalfHeader(modifier: Modifier = Modifier) {
 private fun DayHalfRow(
     dayNum: Int?,
     dayItem: DayStatementItem?,
+    isCompact: Boolean,
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.padding(vertical = 3.dp, horizontal = 2.dp),
+        modifier = modifier.padding(vertical = 2.dp, horizontal = 1.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = dayNum?.let { String.format(Locale.US, "%02d", it) } ?: "-",
-            modifier = Modifier.weight(0.7f),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+            modifier = Modifier.weight(0.75f),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = if (isCompact) 9.5.sp else 10.sp),
             fontWeight = FontWeight.Bold,
-            color = if (dayNum != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+            color = if (dayNum != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false
         )
         Text(
             text = if (dayItem != null && (dayItem.mornQty > BigDecimal.ZERO || dayItem.mornAmt > BigDecimal.ZERO)) {
@@ -2096,13 +2263,19 @@ private fun DayHalfRow(
                 val a = dayItem.mornAmt.setScale(0, RoundingMode.HALF_UP).toPlainString()
                 "${q}L\n₹$a"
             } else "-",
-            modifier = Modifier.weight(1.2f),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp, lineHeight = 11.sp),
+            modifier = Modifier.weight(1.15f),
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = if (isCompact) 8.5.sp else 9.5.sp,
+                lineHeight = if (isCompact) 10.5.sp else 12.sp
+            ),
             color = if (dayItem != null && (dayItem.mornQty > BigDecimal.ZERO || dayItem.mornAmt > BigDecimal.ZERO)) {
                 MaterialTheme.colorScheme.onSurface
             } else {
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
-            }
+            },
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            softWrap = false
         )
         Text(
             text = if (dayItem != null && (dayItem.eveQty > BigDecimal.ZERO || dayItem.eveAmt > BigDecimal.ZERO)) {
@@ -2110,27 +2283,36 @@ private fun DayHalfRow(
                 val a = dayItem.eveAmt.setScale(0, RoundingMode.HALF_UP).toPlainString()
                 "${q}L\n₹$a"
             } else "-",
-            modifier = Modifier.weight(1.2f),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp, lineHeight = 11.sp),
+            modifier = Modifier.weight(1.15f),
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = if (isCompact) 8.5.sp else 9.5.sp,
+                lineHeight = if (isCompact) 10.5.sp else 12.sp
+            ),
             color = if (dayItem != null && (dayItem.eveQty > BigDecimal.ZERO || dayItem.eveAmt > BigDecimal.ZERO)) {
                 MaterialTheme.colorScheme.onSurface
             } else {
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
-            }
+            },
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            softWrap = false
         )
         Text(
             text = if (dayItem != null && dayItem.paymentAmt > BigDecimal.ZERO) {
                 val p = dayItem.paymentAmt.setScale(0, RoundingMode.HALF_UP).toPlainString()
                 "₹$p"
             } else "-",
-            modifier = Modifier.weight(1.1f),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp, lineHeight = 11.sp),
+            modifier = Modifier.weight(1.15f),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = if (isCompact) 8.5.sp else 9.5.sp),
             fontWeight = if (dayItem != null && dayItem.paymentAmt > BigDecimal.ZERO) FontWeight.Bold else FontWeight.Normal,
             color = if (dayItem != null && dayItem.paymentAmt > BigDecimal.ZERO) {
                 Color(0xFF10B981)
             } else {
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
-            }
+            },
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }
