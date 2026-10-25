@@ -164,4 +164,27 @@
     <string name="open_source">ओपन सोर्स</string>
     <string name="cybersecurity">सायबर सुरक्षा</string>
     <string name="offline_first">ऑफलाइन प्रथम</string>
+
+    <!-- Backup, Export & Import -->
+    <string name="backup_restore">बॅकअप आणि पुनर्संचयित करा</string>
+    <string name="export_data">डेटा एक्सपोर्ट करा</string>
+    <string name="import_data">डेटा इंपोर्ट / पुनर्संचयित करा</string>
+    <string name="export_all_tables_zip">सर्व टेबल्स एक्सपोर्ट करा (CSV ZIP)</string>
+    <string name="export_all_tables_zip_desc">डेटाबेसमधील सर्व 6 टेबल्स हेडरसह एकाच ZIP फाइलमध्ये स्वतंत्र CSV स्वरूपात</string>
+    <string name="export_full_json">संपूर्ण डेटाबेस बॅकअप (JSON)</string>
+    <string name="export_full_json_desc">इतर फोनवर डेटा हलवण्यासाठी आणि पुनर्संचयित करण्यासाठी संपूर्ण सुरक्षित बॅकअप</string>
+    <string name="export_customers_csv">फक्त ग्राहक (CSV)</string>
+    <string name="export_transactions_csv">फक्त दैनंदिन व्यवहार (CSV)</string>
+    <string name="choose_export_format">एक्सपोर्ट फॉरमॅट निवडा</string>
+    <string name="import_backup_hint">ZIP (सर्व टेबल्स), JSON बॅकअप किंवा स्वतंत्र CSV फाइल्स समर्थित आहेत</string>
+    <string name="export_success_stats">यशस्वीरित्या एक्सपोर्ट झाले: %1$s</string>
+
+    <!-- Auto Entry Notifications -->
+    <string name="notification_channel_auto_entry">ऑटो दूध नोंद</string>
+    <string name="notification_channel_auto_entry_desc">सकाळ आणि संध्याकाळच्या स्वयंचलित दूध नोंदीसाठी सूचना</string>
+    <string name="morning_auto_entry_done">सकाळची दूध नोंद पूर्ण झाली</string>
+    <string name="evening_auto_entry_done">संध्याकाळची दूध नोंद पूर्ण झाली</string>
+    <string name="auto_entry_notification_body">%1$d ग्राहकांची नोंद केली • %2$s ली (₹%3$s)</string>
+    <string name="auto_entry_notification_up_to_date">%1$s ची सर्व नोंदी आधीच पूर्ण आहेत</string>
+    <string name="test_notification">टेस्ट नोंद सूचना</string>
 </resources>

@@ -164,4 +164,27 @@
     <string name="open_source">ਓਪਨ ਸੋਰਸ</string>
     <string name="cybersecurity">ਸਾਈਬਰ ਸੁਰੱਖਿਆ</string>
     <string name="offline_first">ਔਫਲਾਈਨ ਪਹਿਲਾਂ</string>
+
+    <!-- Backup, Export & Import -->
+    <string name="backup_restore">ਬੈਕਅੱਪ ਅਤੇ ਰੀਸਟੋਰ</string>
+    <string name="export_data">ਡਾਟਾ ਐਕਸਪੋਰਟ ਕਰੋ</string>
+    <string name="import_data">ਡਾਟਾ ਇੰਪੋਰਟ / ਰੀਸਟੋਰ ਕਰੋ</string>
+    <string name="export_all_tables_zip">ਸਾਰੇ ਟੇਬਲ ਐਕਸਪੋਰਟ ਕਰੋ (CSV ZIP)</string>
+    <string name="export_all_tables_zip_desc">ਇੱਕ ZIP ਫਾਈਲ ਵਿੱਚ ਸਾਰੇ 6 ਟੇਬਲਾਂ ਦੇ ਵੱਖਰੇ CSV ਹੈਡਰਾਂ ਸਮੇਤ</string>
+    <string name="export_full_json">ਪੂਰਾ ਡਾਟਾਬੇਸ ਬੈਕਅੱਪ (JSON)</string>
+    <string name="export_full_json_desc">ਕਿਸੇ ਵੀ ਡਿਵਾਈਸ ਤੇ ਰੀਸਟੋਰ ਕਰਨ ਲਈ ਪੂਰਾ ਸੁਰੱਖਿਅਤ ਬੈਕਅੱਪ</string>
+    <string name="export_customers_csv">ਸਿਰਫ਼ ਗਾਹਕ (CSV)</string>
+    <string name="export_transactions_csv">ਸਿਰਫ਼ ਰੋਜ਼ਾਨਾ ਲੈਣ-ਦੇਣ (CSV)</string>
+    <string name="choose_export_format">ਐਕਸਪੋਰਟ ਫਾਰਮੈਟ ਚੁਣੋ</string>
+    <string name="import_backup_hint">ZIP (ਸਾਰੇ ਟੇਬਲ), JSON ਬੈਕਅੱਪ ਜਾਂ ਵੱਖਰੀ CSV ਸਮਰਥਿਤ ਹੈ</string>
+    <string name="export_success_stats">ਸਫਲਤਾਪੂਰਵਕ ਐਕਸਪੋਰਟ ਹੋਇਆ: %1$s</string>
+
+    <!-- Auto Entry Notifications -->
+    <string name="notification_channel_auto_entry">ਆਟੋ ਦੁੱਧ ਐਂਟਰੀ</string>
+    <string name="notification_channel_auto_entry_desc">ਸਵੇਰ ਅਤੇ ਸ਼ਾਮ ਦੀ ਆਟੋਮੈਟਿਕ ਦੁੱਧ ਐਂਟਰੀ ਦੀਆਂ ਸੂਚਨਾਵਾਂ</string>
+    <string name="morning_auto_entry_done">ਸਵੇਰ ਦੀ ਦੁੱਧ ਐਂਟਰੀ ਮੁਕੰਮਲ ਹੋਈ</string>
+    <string name="evening_auto_entry_done">ਸ਼ਾਮ ਦੀ ਦੁੱਧ ਐਂਟਰੀ ਮੁਕੰਮਲ ਹੋਈ</string>
+    <string name="auto_entry_notification_body">%1$d ਗਾਹਕਾਂ ਦੀ ਐਂਟਰੀ ਦਰਜ • %2$s ਲੀ (₹%3$s)</string>
+    <string name="auto_entry_notification_up_to_date">%1$s ਦੀਆਂ ਸਾਰੀਆਂ ਐਂਟਰੀਆਂ ਪਹਿਲਾਂ ਹੀ ਮੁਕੰਮਲ ਹਨ</string>
+    <string name="test_notification">ਟੈਸਟ ਐਂਟਰੀ ਨੋਟੀਫਿਕੇਸ਼ਨ</string>
 </resources>

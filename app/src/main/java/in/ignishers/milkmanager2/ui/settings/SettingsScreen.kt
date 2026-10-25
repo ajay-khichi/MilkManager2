@@ -30,10 +30,14 @@ import androidx.compose.ui.unit.sp
 import `in`.ignishers.milkmanager2.R
 import `in`.ignishers.milkmanager2.database.AppDatabase
 import `in`.ignishers.milkmanager2.database.AppSettingsRepository
-import `in`.ignishers.milkmanager2.utils.CsvExportManager
-import `in`.ignishers.milkmanager2.utils.CsvImportManager
+import `in`.ignishers.milkmanager2.scheduler.AutoEntryManager
+import `in`.ignishers.milkmanager2.utils.DatabaseBackupManager
 import `in`.ignishers.milkmanager2.utils.LocaleHelper
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,20 +45,64 @@ fun SettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val db = remember { AppDatabase.getDatabase(context) }
-    val exportManager = remember { CsvExportManager(context, db) }
-    val importManager = remember { CsvImportManager(context, db) }
+    val backupManager = remember { DatabaseBackupManager(context, db) }
     val appSettingsRepo = remember { AppSettingsRepository(db.appSettingsDao()) }
 
     var selectedLangCode by remember { mutableStateOf(LocaleHelper.getSelectedLanguageCode()) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showExportDialog by remember { mutableStateOf(false) }
 
-    // Export Launcher
-    val exportLauncher = rememberLauncherForActivityResult(
+    fun getTimeStamp() = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
+
+    // 1. Export All Tables ZIP (Contains 6 individual CSVs)
+    val exportZipLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri: Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                val result = backupManager.exportAllTablesToZip(it)
+                if (result.isSuccess) {
+                    val stats = result.getOrNull()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.export_success_stats, stats?.summary() ?: ""),
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(context, context.getString(R.string.export_failed), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    // 2. Export Full Database JSON
+    val exportJsonLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                val result = backupManager.exportFullDatabaseToJson(it)
+                if (result.isSuccess) {
+                    val stats = result.getOrNull()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.export_success_stats, stats?.summary() ?: ""),
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(context, context.getString(R.string.export_failed), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    // 3. Export Customers Only CSV
+    val exportCustomersLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/csv")
     ) { uri: Uri? ->
         uri?.let {
             coroutineScope.launch {
-                val result = exportManager.exportCustomersToCsv(it)
+                val result = backupManager.exportCustomersToCsv(it)
                 if (result.isSuccess) {
                     Toast.makeText(context, context.getString(R.string.export_success), Toast.LENGTH_SHORT).show()
                 } else {
@@ -64,22 +112,37 @@ fun SettingsScreen(onBack: () -> Unit) {
         }
     }
 
-    // Import Launcher
-    val importLauncher = rememberLauncherForActivityResult(
+    // 4. Export Transactions Only CSV
+    val exportTransactionsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri: Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                val result = backupManager.exportTransactionsToCsv(it)
+                if (result.isSuccess) {
+                    Toast.makeText(context, context.getString(R.string.export_success), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, context.getString(R.string.export_failed), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    // 5. Universal Smart Import (ZIP with CSVs, JSON Backup, or single CSV)
+    val importUniversalLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let {
             coroutineScope.launch {
-                val result = importManager.importCustomersFromCsv(it)
+                val result = backupManager.importAnyBackup(it)
                 if (result.isSuccess) {
-                    val count = result.getOrNull() ?: 0
+                    Toast.makeText(context, result.getOrNull() ?: "", Toast.LENGTH_LONG).show()
+                } else {
                     Toast.makeText(
                         context,
-                        context.getString(R.string.import_success, count),
-                        Toast.LENGTH_SHORT
+                        result.exceptionOrNull()?.message ?: context.getString(R.string.import_failed),
+                        Toast.LENGTH_LONG
                     ).show()
-                } else {
-                    Toast.makeText(context, context.getString(R.string.import_failed), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -189,7 +252,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 }
             }
 
-            // Data Migration Card
+            // Data Migration / Backup & Restore Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -199,28 +262,66 @@ fun SettingsScreen(onBack: () -> Unit) {
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = stringResource(R.string.data_migration),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Button(
-                        onClick = { exportLauncher.launch("customers_export.csv") },
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(stringResource(R.string.export_csv))
+                        Text(
+                            text = stringResource(R.string.backup_restore),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
+                    Text(
+                        text = stringResource(R.string.import_backup_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = { showExportDialog = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.export_data))
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                importUniversalLauncher.launch(
+                                    arrayOf("application/zip", "application/json", "text/csv", "text/comma-separated-values", "*/*")
+                                )
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.import_data))
+                        }
+                    }
+
+                    // Test entry notification button
                     OutlinedButton(
                         onClick = {
-                            importLauncher.launch(
-                                arrayOf("text/comma-separated-values", "text/csv", "*/*")
+                            AutoEntryManager.sendAutoEntryNotification(
+                                context = context,
+                                session = "Morning",
+                                processedCount = 3,
+                                totalMilk = BigDecimal("6.5"),
+                                totalAmount = BigDecimal("390.0")
                             )
+                            Toast.makeText(context, "Notification sent! Check system tray.", Toast.LENGTH_SHORT).show()
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
-                        Text(stringResource(R.string.import_csv))
+                        Text(
+                            text = stringResource(R.string.test_notification),
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             }
@@ -425,6 +526,124 @@ fun SettingsScreen(onBack: () -> Unit) {
                 },
                 confirmButton = {
                     TextButton(onClick = { showLanguageDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        // Export Format Selection Dialog
+        if (showExportDialog) {
+            AlertDialog(
+                onDismissRequest = { showExportDialog = false },
+                title = {
+                    Text(
+                        text = stringResource(R.string.choose_export_format),
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // 1. All Tables CSV ZIP
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showExportDialog = false
+                                    exportZipLauncher.launch("MilkManager_AllTables_${getTimeStamp()}.zip")
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.export_all_tables_zip),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(R.string.export_all_tables_zip_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // 2. Full Database JSON
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showExportDialog = false
+                                    exportJsonLauncher.launch("MilkManager_Backup_${getTimeStamp()}.json")
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.export_full_json),
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(R.string.export_full_json_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // 3. Customers Only CSV
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showExportDialog = false
+                                    exportCustomersLauncher.launch("customers_export.csv")
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.export_customers_csv),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        // 4. Transactions Only CSV
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showExportDialog = false
+                                    exportTransactionsLauncher.launch("transactions_export.csv")
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.export_transactions_csv),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showExportDialog = false }) {
                         Text(stringResource(R.string.cancel))
                     }
                 }

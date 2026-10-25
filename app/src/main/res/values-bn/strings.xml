@@ -164,4 +164,27 @@
     <string name="open_source">ওপেন সোর্স</string>
     <string name="cybersecurity">সাইবার নিরাপত্তা</string>
     <string name="offline_first">অফলাইন প্রথম</string>
+
+    <!-- Backup, Export & Import -->
+    <string name="backup_restore">ব্যাকআপ ও পুনরুদ্ধার</string>
+    <string name="export_data">ডেটা এক্সপোর্ট করুন</string>
+    <string name="import_data">ডেটা ইম্পোর্ট / পুনরুদ্ধার</string>
+    <string name="export_all_tables_zip">সব টেবিল এক্সপোর্ট করুন (CSV ZIP)</string>
+    <string name="export_all_tables_zip_desc">একটি ZIP ফাইলে পৃথক CSV হিসেবে ডাটাবেসের সমস্ত ৬টি টেবিল</string>
+    <string name="export_full_json">সম্পূর্ণ ডাটাবেস ব্যাকআপ (JSON)</string>
+    <string name="export_full_json_desc">অন্য ডিভাইসে স্থানান্তরের জন্য সম্পূর্ণ নিরাপদ ব্যাকআপ</string>
+    <string name="export_customers_csv">শুধুমাত্র গ্রাহক (CSV)</string>
+    <string name="export_transactions_csv">শুধুমাত্র দৈনন্দিন লেনদেন (CSV)</string>
+    <string name="choose_export_format">এক্সপোর্ট ফরম্যাট নির্বাচন করুন</string>
+    <string name="import_backup_hint">ZIP (সব টেবিল), JSON ব্যাকআপ বা পৃথক CSV সমর্থিত</string>
+    <string name="export_success_stats">সফলভাবে এক্সপোর্ট হয়েছে: %1$s</string>
+
+    <!-- Auto Entry Notifications -->
+    <string name="notification_channel_auto_entry">অটো দুধ এন্ট্রি</string>
+    <string name="notification_channel_auto_entry_desc">সকাল ও সন্ধ্যার স্বয়ংক্রিয় দুধ এন্ট্রির বিজ্ঞপ্তি</string>
+    <string name="morning_auto_entry_done">সকালের দুধ এন্ট্রি সম্পন্ন হয়েছে</string>
+    <string name="evening_auto_entry_done">সন্ধ্যার দুধ এন্ট্রি সম্পন্ন হয়েছে</string>
+    <string name="auto_entry_notification_body">%1$d জন গ্রাহকের এন্ট্রি সংরক্ষিত • %2$s লি (₹%3$s)</string>
+    <string name="auto_entry_notification_up_to_date">%1$s এর সমস্ত এন্ট্রি ইতিমধ্যে সম্পন্ন</string>
+    <string name="test_notification">পরীক্ষামূলক বিজ্ঞপ্তি</string>
 </resources>
