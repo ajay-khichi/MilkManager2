@@ -4,15 +4,20 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import `in`.ignishers.milkmanager2.R
@@ -85,6 +90,13 @@ fun AddCustomerDialog(
     onDismiss: () -> Unit,
     onSave: (Customer) -> Unit
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    val mobileFocusRequester = remember { FocusRequester() }
+    val morningFocusRequester = remember { FocusRequester() }
+    val eveningFocusRequester = remember { FocusRequester() }
+    val dueFocusRequester = remember { FocusRequester() }
+
     var name by remember { mutableStateOf(initialCustomer?.name ?: "") }
     var mobile by remember { mutableStateOf(initialCustomer?.mobile ?: "") }
     var morningQtyStr by remember {
@@ -158,6 +170,40 @@ fun AddCustomerDialog(
         else -> "₹ "
     }
 
+    fun saveCustomer() {
+        if (name.isBlank()) return
+        keyboardController?.hide()
+        val morningVal = morningQtyStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        val eveningVal = eveningQtyStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        val openingDue = openingDueStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
+
+        val morningLiters = when (entryMode) {
+            "Rupees" -> if (milkRate > BigDecimal.ZERO) morningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
+            "ml" -> morningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
+            else -> morningVal
+        }
+
+        val eveningLiters = when (entryMode) {
+            "Rupees" -> if (milkRate > BigDecimal.ZERO) eveningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
+            "ml" -> eveningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
+            else -> eveningVal
+        }
+
+        val customer = initialCustomer ?: Customer()
+        customer.apply {
+            this.name = name.trim()
+            this.mobile = mobile.trim()
+            this.defaultQtyMorning = morningLiters
+            this.defaultQtyEvening = eveningLiters
+            this.currentDue = openingDue
+            if (initialCustomer == null) {
+                this.sortOrder = 0
+                this.syncSellerId = null
+            }
+        }
+        onSave(customer)
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initialCustomer == null) stringResource(R.string.add_customer) else stringResource(R.string.edit_customer), fontWeight = FontWeight.Bold) },
@@ -165,6 +211,7 @@ fun AddCustomerDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .imePadding()
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
@@ -173,6 +220,8 @@ fun AddCustomerDialog(
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.name)) },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { mobileFocusRequester.requestFocus() }),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -180,9 +229,12 @@ fun AddCustomerDialog(
                     value = mobile,
                     onValueChange = { mobile = it },
                     label = { Text(stringResource(R.string.mobile_number)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { morningFocusRequester.requestFocus() }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(mobileFocusRequester)
                 )
 
                 Text(
@@ -202,9 +254,12 @@ fun AddCustomerDialog(
                     onValueChange = { morningQtyStr = it },
                     label = { Text(mLabel) },
                     prefix = { Text(prefix) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { eveningFocusRequester.requestFocus() }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(morningFocusRequester)
                 )
 
                 OutlinedTextField(
@@ -212,9 +267,12 @@ fun AddCustomerDialog(
                     onValueChange = { eveningQtyStr = it },
                     label = { Text(eLabel) },
                     prefix = { Text(prefix) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { dueFocusRequester.requestFocus() }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(eveningFocusRequester)
                 )
 
                 OutlinedTextField(
@@ -222,45 +280,18 @@ fun AddCustomerDialog(
                     onValueChange = { openingDueStr = it },
                     label = { Text(if (initialCustomer == null) stringResource(R.string.opening_due_rupees) else stringResource(R.string.current_due_rupees)) },
                     prefix = { Text("₹ ") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { saveCustomer() }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(dueFocusRequester)
                 )
             }
         },
         confirmButton = {
             Button(
-                onClick = {
-                    val morningVal = morningQtyStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                    val eveningVal = eveningQtyStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                    val openingDue = openingDueStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
-
-                    val morningLiters = when (entryMode) {
-                        "Rupees" -> if (milkRate > BigDecimal.ZERO) morningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
-                        "ml" -> morningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
-                        else -> morningVal
-                    }
-
-                    val eveningLiters = when (entryMode) {
-                        "Rupees" -> if (milkRate > BigDecimal.ZERO) eveningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
-                        "ml" -> eveningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
-                        else -> eveningVal
-                    }
-
-                    val customer = initialCustomer ?: Customer()
-                    customer.apply {
-                        this.name = name.trim()
-                        this.mobile = mobile.trim()
-                        this.defaultQtyMorning = morningLiters
-                        this.defaultQtyEvening = eveningLiters
-                        this.currentDue = openingDue
-                        if (initialCustomer == null) {
-                            this.sortOrder = 0
-                            this.syncSellerId = null
-                        }
-                    }
-                    onSave(customer)
-                },
+                onClick = { saveCustomer() },
                 enabled = name.isNotBlank()
             ) {
                 Text(stringResource(R.string.save), fontWeight = FontWeight.Bold)

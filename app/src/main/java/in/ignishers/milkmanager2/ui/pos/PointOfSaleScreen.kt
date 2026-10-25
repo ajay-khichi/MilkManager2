@@ -11,6 +11,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -29,13 +30,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -890,6 +895,9 @@ fun ManualEntryBottomSheet(
     onSave: (date: String, session: String, entryType: String, value: BigDecimal) -> Unit
 ) {
     val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     var selectedDate by remember { mutableStateOf(initialDate) }
     var selectedSession by remember { mutableStateOf(initialSession) }
     var selectedEntryType by remember { mutableStateOf("Litres") } // "Litres", "ml", "Rupee"
@@ -908,13 +916,25 @@ fun ManualEntryBottomSheet(
         )
     }
 
+    fun performSave() {
+        val dec = inputValue.toBigDecimalOrNull()
+        if (dec != null && dec > BigDecimal.ZERO) {
+            keyboardController?.hide()
+            onSave(selectedDate, selectedSession, selectedEntryType, dec)
+            onDismiss()
+        }
+    }
+
     ModalBottomSheet(
-        onDismissRequest = onDismiss
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
                 .padding(bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -1004,7 +1024,8 @@ fun ManualEntryBottomSheet(
                 onValueChange = { inputValue = it },
                 label = { Text(labelText) },
                 suffix = { Text(suffixText, fontWeight = FontWeight.Bold) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { performSave() }),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -1044,13 +1065,7 @@ fun ManualEntryBottomSheet(
 
             // Save Entry Button
             Button(
-                onClick = {
-                    val dec = inputValue.toBigDecimalOrNull()
-                    if (dec != null && dec > BigDecimal.ZERO) {
-                        onSave(selectedDate, selectedSession, selectedEntryType, dec)
-                        onDismiss()
-                    }
-                },
+                onClick = { performSave() },
                 enabled = numValue != null && numValue > 0,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1070,22 +1085,38 @@ fun RecordPaymentDialog(
     onDismiss: () -> Unit,
     onSave: (amount: BigDecimal, mode: String, date: String) -> Unit
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
     var amountText by remember {
         mutableStateOf(initialAmount?.takeIf { it > BigDecimal.ZERO }?.stripTrailingZeros()?.toPlainString() ?: "")
     }
     var paymentMode by remember { mutableStateOf("Cash") }
 
+    fun performSave() {
+        val amt = amountText.toBigDecimalOrNull()
+        if (amt != null && amt > BigDecimal.ZERO) {
+            keyboardController?.hide()
+            onSave(amt, paymentMode, initialDate)
+            onDismiss()
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.record_payment), fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = { amountText = it },
                     label = { Text(stringResource(R.string.payment_amount)) },
                     prefix = { Text("₹ ") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { performSave() }),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1110,13 +1141,7 @@ fun RecordPaymentDialog(
         },
         confirmButton = {
             Button(
-                onClick = {
-                    val amt = amountText.toBigDecimalOrNull()
-                    if (amt != null && amt > BigDecimal.ZERO) {
-                        onSave(amt, paymentMode, initialDate)
-                        onDismiss()
-                    }
-                },
+                onClick = { performSave() },
                 enabled = amountText.toBigDecimalOrNull()?.let { it > BigDecimal.ZERO } == true
             ) {
                 Text(stringResource(R.string.save_payment))
@@ -1155,6 +1180,9 @@ fun DefaultQuantityDialog(
     onDismiss: () -> Unit,
     onUpdate: (morningQty: BigDecimal, eveningQty: BigDecimal) -> Unit
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val eveningFocusRequester = remember { FocusRequester() }
+
     var selectedUnit by remember { mutableStateOf("Litres") } // "Litres", "ml", "Rupees"
     var morningText by remember {
         mutableStateOf(
@@ -1221,11 +1249,35 @@ fun DefaultQuantityDialog(
         else -> "₹ "
     }
 
+    fun performUpdate() {
+        keyboardController?.hide()
+        val morningVal = morningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        val eveningVal = eveningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+
+        val mFinal = when (selectedUnit) {
+            "Rupees" -> if (milkRate > BigDecimal.ZERO) morningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
+            "ml" -> morningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
+            else -> morningVal
+        }
+        val eFinal = when (selectedUnit) {
+            "Rupees" -> if (milkRate > BigDecimal.ZERO) eveningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
+            "ml" -> eveningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
+            else -> eveningVal
+        }
+        onUpdate(mFinal, eFinal)
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.default_milk_quantity), fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
                 Text(
                     text = "Customer: ${customer.name ?: "N/A"}",
                     style = MaterialTheme.typography.bodyMedium,
@@ -1250,7 +1302,8 @@ fun DefaultQuantityDialog(
                     onValueChange = { morningText = it },
                     label = { Text(mLabel) },
                     prefix = { Text(prefix) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { eveningFocusRequester.requestFocus() }),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1261,30 +1314,18 @@ fun DefaultQuantityDialog(
                     onValueChange = { eveningText = it },
                     label = { Text(eLabel) },
                     prefix = { Text(prefix) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { performUpdate() }),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(eveningFocusRequester)
                 )
             }
         },
         confirmButton = {
             Button(
-                onClick = {
-                    val morningVal = morningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                    val eveningVal = eveningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-
-                    val mFinal = when (selectedUnit) {
-                        "Rupees" -> if (milkRate > BigDecimal.ZERO) morningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
-                        "ml" -> morningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
-                        else -> morningVal
-                    }
-                    val eFinal = when (selectedUnit) {
-                        "Rupees" -> if (milkRate > BigDecimal.ZERO) eveningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
-                        "ml" -> eveningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
-                        else -> eveningVal
-                    }
-                    onUpdate(mFinal, eFinal)
-                }
+                onClick = { performUpdate() }
             ) {
                 Text(stringResource(R.string.update), fontWeight = FontWeight.Bold)
             }

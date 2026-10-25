@@ -1,11 +1,14 @@
 package `in`.ignishers.milkmanager2.ui.dashboard
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import `in`.ignishers.milkmanager2.R
@@ -22,6 +25,7 @@ fun UpdateMilkPriceDialog(
     onDismiss: () -> Unit,
     onSave: (MilkRate) -> Unit
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
     var priceStr by remember { mutableStateOf(currentPrice?.toPlainString() ?: "") }
     
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
@@ -29,6 +33,19 @@ fun UpdateMilkPriceDialog(
 
     val formatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
     val selectedDateStr = datePickerState.selectedDateMillis?.let { formatter.format(Date(it)) } ?: stringResource(R.string.select_date)
+
+    fun performSave() {
+        val price = priceStr.toBigDecimalOrNull()
+        val dateMillis = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+        if (price != null && price > BigDecimal.ZERO) {
+            keyboardController?.hide()
+            val rate = MilkRate(
+                price = price,
+                effectiveDate = dateMillis.toString()
+            )
+            onSave(rate)
+        }
+    }
 
     if (showDatePicker) {
         DatePickerDialog(
@@ -53,14 +70,18 @@ fun UpdateMilkPriceDialog(
         title = { Text(stringResource(R.string.update_milk_price)) },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(
                     value = priceStr,
                     onValueChange = { priceStr = it },
                     label = { Text(stringResource(R.string.price_per_liter)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { performSave() }),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -74,17 +95,7 @@ fun UpdateMilkPriceDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = {
-                    val price = priceStr.toBigDecimalOrNull()
-                    val dateMillis = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
-                    if (price != null && price > BigDecimal.ZERO) {
-                        val rate = MilkRate(
-                            price = price,
-                            effectiveDate = dateMillis.toString()
-                        )
-                        onSave(rate)
-                    }
-                },
+                onClick = { performSave() },
                 enabled = priceStr.toBigDecimalOrNull()?.let { it > BigDecimal.ZERO } == true
             ) {
                 Text(stringResource(R.string.save))
