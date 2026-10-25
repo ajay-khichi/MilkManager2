@@ -3,6 +3,7 @@ package `in`.ignishers.milkmanager2.models
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
 
@@ -15,6 +16,11 @@ import java.math.BigDecimal
             childColumns = ["customer_id_fk"],
             onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        Index(value = ["customer_id_fk"]),
+        Index(value = ["payment_date"]),
+        Index(value = ["customer_id_fk", "payment_date"])
     ]
 )
 data class Payment(

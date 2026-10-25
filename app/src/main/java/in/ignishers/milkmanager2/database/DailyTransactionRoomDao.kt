@@ -39,8 +39,15 @@ data class YearlyReportItem(
 interface DailyTransactionRoomDao {
     @Query("SELECT * FROM milk_transaction")
     fun getAllTransactions(): kotlinx.coroutines.flow.Flow<List<DailyTransaction>>
+
+    @Query("SELECT * FROM milk_transaction ORDER BY transaction_date ASC, transaction_id ASC")
+    suspend fun getAllTransactionsList(): List<DailyTransaction>
+
     @Insert
     suspend fun insert(transaction: DailyTransaction): Long
+
+    @Insert
+    suspend fun insertAll(transactions: List<DailyTransaction>): List<Long>
 
     @Query("SELECT * FROM milk_transaction WHERE customer_id_fk = :customerId AND strftime('%m', transaction_date) = :month AND strftime('%Y', transaction_date) = :year")
     suspend fun getTransactionsByMonth(customerId: String, month: String, year: String): List<DailyTransaction>

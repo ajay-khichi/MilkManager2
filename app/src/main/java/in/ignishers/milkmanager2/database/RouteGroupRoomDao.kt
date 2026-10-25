@@ -13,6 +13,9 @@ interface RouteGroupRoomDao {
     @Query("SELECT * FROM route_group ORDER BY sort_order ASC, group_id ASC")
     fun getAllRouteGroups(): Flow<List<RouteGroup>>
 
+    @Query("SELECT * FROM route_group ORDER BY sort_order ASC, group_id ASC")
+    suspend fun getAllRouteGroupsList(): List<RouteGroup>
+
     @Query("SELECT * FROM route_group WHERE (parent_group_id IS NULL OR parent_group_id = 0) AND group_id != 0 ORDER BY sort_order ASC, group_id ASC")
     fun getRootGroups(): Flow<List<RouteGroup>>
 
@@ -27,6 +30,9 @@ interface RouteGroupRoomDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(routeGroup: RouteGroup): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(routeGroups: List<RouteGroup>): List<Long>
 
     @Update
     suspend fun update(routeGroup: RouteGroup): Int

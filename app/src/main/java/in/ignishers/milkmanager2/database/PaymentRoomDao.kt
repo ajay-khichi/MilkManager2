@@ -7,8 +7,14 @@ import java.math.BigDecimal
 
 @Dao
 interface PaymentRoomDao {
+    @Query("SELECT * FROM payment ORDER BY payment_date ASC, payment_id ASC")
+    suspend fun getAllPaymentsList(): List<Payment>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(payment: Payment): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(payments: List<Payment>): List<Long>
 
     @Update
     suspend fun update(payment: Payment): Int

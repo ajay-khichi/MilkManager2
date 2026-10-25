@@ -3,6 +3,7 @@ package `in`.ignishers.milkmanager2.models
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
 
@@ -15,6 +16,12 @@ import java.math.BigDecimal
             childColumns = ["customer_id_fk"],
             onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        Index(value = ["customer_id_fk"]),
+        Index(value = ["transaction_date"]),
+        Index(value = ["customer_id_fk", "transaction_date"]),
+        Index(value = ["customer_id_fk", "transaction_date", "transaction_session"])
     ]
 )
 data class DailyTransaction(
@@ -55,4 +62,4 @@ data class DailyTransaction(
 
     @ColumnInfo(name = "remote_id")
     val remoteId: Long? = null
-)
+)

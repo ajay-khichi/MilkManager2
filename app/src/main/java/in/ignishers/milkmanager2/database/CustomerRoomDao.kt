@@ -29,6 +29,9 @@ interface CustomerRoomDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(customer: Customer): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(customers: List<Customer>): List<Long>
+
     @Update
     suspend fun update(customer: Customer): Int
 

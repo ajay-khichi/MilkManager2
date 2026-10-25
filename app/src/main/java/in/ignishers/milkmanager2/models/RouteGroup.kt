@@ -3,9 +3,16 @@ package `in`.ignishers.milkmanager2.models
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "route_group")
+@Entity(
+    tableName = "route_group",
+    indices = [
+        Index(value = ["parent_group_id"]),
+        Index(value = ["sort_order"])
+    ]
+)
 class RouteGroup {
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "group_id")

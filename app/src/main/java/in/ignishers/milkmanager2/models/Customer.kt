@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
 
@@ -16,6 +17,10 @@ import java.math.BigDecimal
             childColumns = ["route_id_fk"],
             onDelete = ForeignKey.NO_ACTION
         )
+    ],
+    indices = [
+        Index(value = ["route_id_fk"]),
+        Index(value = ["sort_order"])
     ]
 )
 class Customer {
