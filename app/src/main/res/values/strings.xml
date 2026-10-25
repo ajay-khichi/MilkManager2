@@ -90,8 +90,10 @@
     <string name="liters">Liters</string>
     <string name="rupees">Rupees</string>
     <string name="morning_liters">Morning (Liters)</string>
+    <string name="morning_ml">Morning (ml)</string>
     <string name="morning_rupees">Morning (₹)</string>
     <string name="evening_liters">Evening (Liters)</string>
+    <string name="evening_ml">Evening (ml)</string>
     <string name="evening_rupees">Evening (₹)</string>
     <string name="opening_due_rupees">Opening Due (₹)</string>
     <string name="current_due_rupees">Current Due (₹)</string>

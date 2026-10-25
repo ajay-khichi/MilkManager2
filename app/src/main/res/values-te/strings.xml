@@ -90,8 +90,10 @@
     <string name="liters">లీటర్లు</string>
     <string name="rupees">రూపాయలు</string>
     <string name="morning_liters">ఉదయం (లీటర్లు)</string>
+    <string name="morning_ml">ఉదయం (ml)</string>
     <string name="morning_rupees">ఉదయం (₹)</string>
     <string name="evening_liters">సాయంత్రం (లీటర్లు)</string>
+    <string name="evening_ml">సాయంత్రం (ml)</string>
     <string name="evening_rupees">సాయంత్రం (₹)</string>
     <string name="opening_due_rupees">ప్రారంభ బాకీ (₹)</string>
     <string name="current_due_rupees">ప్రస్తుత బాకీ (₹)</string>

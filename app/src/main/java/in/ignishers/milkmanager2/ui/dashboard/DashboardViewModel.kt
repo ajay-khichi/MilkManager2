@@ -57,6 +57,7 @@ class DashboardViewModel(
         launchSafe {
             _totalRevenue.value = transactionDao.getTotalRevenueLifetime() ?: BigDecimal.ZERO
             _totalMilk.value = transactionDao.getTotalMilkLifetime() ?: BigDecimal.ZERO
+            _currentMilkRate.value = milkRateRepository.getLatestRate()
         }
     }
 

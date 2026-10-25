@@ -51,6 +51,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import `in`.ignishers.milkmanager2.R
+import `in`.ignishers.milkmanager2.ui.dashboard.UnitSegmentedButtons
 import org.koin.androidx.compose.koinViewModel
 import java.math.BigDecimal
 import java.util.Calendar
@@ -1154,7 +1155,7 @@ fun DefaultQuantityDialog(
     onDismiss: () -> Unit,
     onUpdate: (morningQty: BigDecimal, eveningQty: BigDecimal) -> Unit
 ) {
-    var selectedUnit by remember { mutableStateOf("Litres") } // "Litres" or "Rupees"
+    var selectedUnit by remember { mutableStateOf("Litres") } // "Litres", "ml", "Rupees"
     var morningText by remember {
         mutableStateOf(
             customer.defaultQtyMorning?.takeIf { it > BigDecimal.ZERO }?.stripTrailingZeros()?.toPlainString() ?: "0"
@@ -1167,21 +1168,57 @@ fun DefaultQuantityDialog(
     }
 
     fun switchUnit(newUnit: String) {
-        if (newUnit == selectedUnit) return
-        if (newUnit == "Rupees") {
-            val mQty = morningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-            val eQty = eveningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-            morningText = mQty.multiply(milkRate).stripTrailingZeros().toPlainString()
-            eveningText = eQty.multiply(milkRate).stripTrailingZeros().toPlainString()
-        } else {
-            val mAmt = morningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-            val eAmt = eveningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-            val mQty = if (milkRate > BigDecimal.ZERO) mAmt.divide(milkRate, 2, RoundingMode.HALF_UP) else BigDecimal.ZERO
-            val eQty = if (milkRate > BigDecimal.ZERO) eAmt.divide(milkRate, 2, RoundingMode.HALF_UP) else BigDecimal.ZERO
-            morningText = mQty.stripTrailingZeros().toPlainString()
-            eveningText = eQty.stripTrailingZeros().toPlainString()
+        if (newUnit.equals(selectedUnit, ignoreCase = true)) return
+        val mVal = morningText.toBigDecimalOrNull()
+        val eVal = eveningText.toBigDecimalOrNull()
+
+        if (mVal != null && mVal > BigDecimal.ZERO) {
+            val baseLiters = when (selectedUnit) {
+                "Litres" -> mVal
+                "ml" -> mVal.divide(BigDecimal("1000.0"), 4, RoundingMode.HALF_UP)
+                "Rupees" -> if (milkRate > BigDecimal.ZERO) mVal.divide(milkRate, 4, RoundingMode.HALF_UP) else BigDecimal.ZERO
+                else -> mVal
+            }
+            morningText = when (newUnit) {
+                "Litres" -> baseLiters.stripTrailingZeros().toPlainString()
+                "ml" -> baseLiters.multiply(BigDecimal("1000.0")).stripTrailingZeros().toPlainString()
+                "Rupees" -> baseLiters.multiply(milkRate).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+                else -> baseLiters.toPlainString()
+            }
         }
+
+        if (eVal != null && eVal > BigDecimal.ZERO) {
+            val baseLiters = when (selectedUnit) {
+                "Litres" -> eVal
+                "ml" -> eVal.divide(BigDecimal("1000.0"), 4, RoundingMode.HALF_UP)
+                "Rupees" -> if (milkRate > BigDecimal.ZERO) eVal.divide(milkRate, 4, RoundingMode.HALF_UP) else BigDecimal.ZERO
+                else -> eVal
+            }
+            eveningText = when (newUnit) {
+                "Litres" -> baseLiters.stripTrailingZeros().toPlainString()
+                "ml" -> baseLiters.multiply(BigDecimal("1000.0")).stripTrailingZeros().toPlainString()
+                "Rupees" -> baseLiters.multiply(milkRate).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+                else -> baseLiters.toPlainString()
+            }
+        }
+
         selectedUnit = newUnit
+    }
+
+    val mLabel = when (selectedUnit) {
+        "Litres" -> stringResource(R.string.morning_liters)
+        "ml" -> stringResource(R.string.morning_ml)
+        else -> stringResource(R.string.morning_rupees)
+    }
+    val eLabel = when (selectedUnit) {
+        "Litres" -> stringResource(R.string.evening_liters)
+        "ml" -> stringResource(R.string.evening_ml)
+        else -> stringResource(R.string.evening_rupees)
+    }
+    val prefix = when (selectedUnit) {
+        "Litres" -> "L "
+        "ml" -> "ml "
+        else -> "₹ "
     }
 
     AlertDialog(
@@ -1195,37 +1232,10 @@ fun DefaultQuantityDialog(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                // Radio buttons for Litres vs Rupees
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { switchUnit("Litres") }
-                    ) {
-                        RadioButton(
-                            selected = selectedUnit == "Litres",
-                            onClick = { switchUnit("Litres") }
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.litres), style = MaterialTheme.typography.bodyMedium)
-                    }
-
-                    Spacer(modifier = Modifier.width(24.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { switchUnit("Rupees") }
-                    ) {
-                        RadioButton(
-                            selected = selectedUnit == "Rupees",
-                            onClick = { switchUnit("Rupees") }
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.rupees), style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
+                UnitSegmentedButtons(
+                    selectedUnit = selectedUnit,
+                    onUnitSelected = { switchUnit(it) }
+                )
 
                 Text(
                     text = "Current Rate: ₹$milkRate / Litre",
@@ -1238,8 +1248,8 @@ fun DefaultQuantityDialog(
                 OutlinedTextField(
                     value = morningText,
                     onValueChange = { morningText = it },
-                    label = { Text(if (selectedUnit == "Litres") stringResource(R.string.morning_liters) else stringResource(R.string.morning_rupees)) },
-                    prefix = { Text(if (selectedUnit == "Litres") "L " else "₹ ") },
+                    label = { Text(mLabel) },
+                    prefix = { Text(prefix) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -1249,8 +1259,8 @@ fun DefaultQuantityDialog(
                 OutlinedTextField(
                     value = eveningText,
                     onValueChange = { eveningText = it },
-                    label = { Text(if (selectedUnit == "Litres") stringResource(R.string.evening_liters) else stringResource(R.string.evening_rupees)) },
-                    prefix = { Text(if (selectedUnit == "Litres") "L " else "₹ ") },
+                    label = { Text(eLabel) },
+                    prefix = { Text(prefix) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -1260,17 +1270,18 @@ fun DefaultQuantityDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val mFinal = if (selectedUnit == "Litres") {
-                        morningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                    } else {
-                        val amt = morningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                        if (milkRate > BigDecimal.ZERO) amt.divide(milkRate, 2, RoundingMode.HALF_UP) else BigDecimal.ZERO
+                    val morningVal = morningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    val eveningVal = eveningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+
+                    val mFinal = when (selectedUnit) {
+                        "Rupees" -> if (milkRate > BigDecimal.ZERO) morningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
+                        "ml" -> morningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
+                        else -> morningVal
                     }
-                    val eFinal = if (selectedUnit == "Litres") {
-                        eveningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                    } else {
-                        val amt = eveningText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                        if (milkRate > BigDecimal.ZERO) amt.divide(milkRate, 2, RoundingMode.HALF_UP) else BigDecimal.ZERO
+                    val eFinal = when (selectedUnit) {
+                        "Rupees" -> if (milkRate > BigDecimal.ZERO) eveningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
+                        "ml" -> eveningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
+                        else -> eveningVal
                     }
                     onUpdate(mFinal, eFinal)
                 }

@@ -90,8 +90,10 @@
     <string name="liters">लीटर</string>
     <string name="rupees">रुपये</string>
     <string name="morning_liters">सुबह (लीटर)</string>
+    <string name="morning_ml">सुबह (ml)</string>
     <string name="morning_rupees">सुबह (₹)</string>
     <string name="evening_liters">शाम (लीटर)</string>
+    <string name="evening_ml">शाम (ml)</string>
     <string name="evening_rupees">शाम (₹)</string>
     <string name="opening_due_rupees">आरंभिक बाकी (₹)</string>
     <string name="current_due_rupees">वर्तमान बाकी (₹)</string>

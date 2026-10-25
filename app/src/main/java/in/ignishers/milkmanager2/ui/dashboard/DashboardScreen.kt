@@ -90,9 +90,12 @@ fun DashboardScreen(
     val defaultAppName = stringResource(R.string.app_name)
     val currentRouteName = allRouteGroups.find { it.id == currentRouteId }?.name ?: defaultAppName
 
+    val currentMilkRate by viewModel.currentMilkRate.collectAsState()
+
     if (showAddCustomerDialog || customerToEdit != null) {
         AddCustomerDialog(
             initialCustomer = customerToEdit,
+            milkRate = currentMilkRate?.price ?: BigDecimal("60.0"),
             onDismiss = { 
                 showAddCustomerDialog = false
                 customerToEdit = null
