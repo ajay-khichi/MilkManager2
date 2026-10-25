@@ -155,4 +155,13 @@
     <string name="share_bill_pdf_title">పాల బిల్లు PDFని షేర్ చేయండి</string>
     <string name="error_sharing_pdf">PDFని షేర్ చేయడంలో లోపం: %1$s</string>
     <string name="no_pdf_viewer">పరికరంలో PDF వీక్షక యాప్ ఏదీ కనుగొనబడలేదు</string>
+
+    <!-- About Ignishers -->
+    <string name="about_ignishers">Ignishers గురించి</string>
+    <string name="ignishers_community_tagline">ఓపెన్-సోర్స్ టెక్ &amp; సైబర్ సెక్యూరిటీ కమ్యూనిటీ</string>
+    <string name="ignishers_community_desc">Ignishers ప్రాక్టికల్ ఓపెన్-సోర్స్ ప్రాజెక్ట్‌లు, డెవలపర్ సాధనాలు మరియు సాంకేతిక పరిష్కారాల నిర్మాణానికి అంకితం చేయబడింది. Milk Manager పాల పంపిణీ వ్యాపారాల కోసం వేగవంతమైన, ఆఫ్‌లైన్-ఫస్ట్ యాప్.</string>
+    <string name="visit_website">ignishers.in ని సందర్శించండి</string>
+    <string name="open_source">ఓపెన్ సోర్స్</string>
+    <string name="cybersecurity">సైబర్ సెక్యూరిటీ</string>
+    <string name="offline_first">ఆఫ్‌లైన్ ఫస్ట్</string>
 </resources>

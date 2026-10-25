@@ -35,6 +35,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -225,6 +226,9 @@ fun PointOfSaleScreen(
         }
     ) { paddingValues ->
         val density = LocalDensity.current
+        val configuration = LocalConfiguration.current
+        val isCompactScreen = configuration.screenWidthDp < 360
+        val screenPadding = if (isCompactScreen) 10.dp else 16.dp
         val swipeThreshold = remember(density) { with(density) { 60.dp.toPx() } }
         var totalDragX by remember { mutableFloatStateOf(0f) }
         val scrollState = rememberScrollState()
@@ -272,7 +276,7 @@ fun PointOfSaleScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(16.dp),
+                    .padding(screenPadding),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
             // Customer Due & Balance Info Card
@@ -282,7 +286,7 @@ fun PointOfSaleScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(if (isCompactScreen) 12.dp else 16.dp)) {
                     // Mobile No & Total Due Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -293,7 +297,7 @@ fun PointOfSaleScreen(
                             Text(stringResource(R.string.mobile_no), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 text = customer?.mobile?.takeIf { it.isNotBlank() } ?: "-",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = if (isCompactScreen) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -301,7 +305,7 @@ fun PointOfSaleScreen(
                             Text(stringResource(R.string.total_due), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 text = "₹${customer?.currentDue ?: BigDecimal.ZERO}",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = if (isCompactScreen) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = if ((customer?.currentDue ?: BigDecimal.ZERO) > BigDecimal.ZERO) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                             )
@@ -309,7 +313,7 @@ fun PointOfSaleScreen(
                     }
 
                     HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
+                        modifier = Modifier.padding(vertical = 10.dp),
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
 
@@ -319,20 +323,20 @@ fun PointOfSaleScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f, fill = false)) {
                             Text(stringResource(R.string.last_month_due), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 text = if (lastMonthDue > BigDecimal.ZERO) "₹$lastMonthDue" else "₹0",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = if (isCompactScreen) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = if (lastMonthDue > BigDecimal.ZERO) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                             )
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             OutlinedButton(
                                 onClick = { openBillForMonth(YearMonth.now()) },
                                 shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                contentPadding = PaddingValues(horizontal = if (isCompactScreen) 8.dp else 12.dp, vertical = 6.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.DateRange,
@@ -340,14 +344,14 @@ fun PointOfSaleScreen(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(R.string.bill), fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.bill), fontWeight = FontWeight.Bold, fontSize = if (isCompactScreen) 12.sp else 14.sp)
                             }
                             Button(
                                 onClick = { showPaymentDialog = true },
                                 shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                                contentPadding = PaddingValues(horizontal = if (isCompactScreen) 10.dp else 16.dp, vertical = 6.dp)
                             ) {
-                                Text(stringResource(R.string.pay), fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.pay), fontWeight = FontWeight.Bold, fontSize = if (isCompactScreen) 12.sp else 14.sp)
                             }
                         }
                     }
@@ -357,13 +361,13 @@ fun PointOfSaleScreen(
             // Session Segmented Buttons
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SessionButton(
-                    text = "Morning",
+                    text = stringResource(R.string.morning),
                     isSelected = session == "Morning",
                     onClick = { viewModel.setSession("Morning") },
                     modifier = Modifier.weight(1f)
                 )
                 SessionButton(
-                    text = "Evening",
+                    text = stringResource(R.string.evening),
                     isSelected = session == "Evening",
                     onClick = { viewModel.setSession("Evening") },
                     modifier = Modifier.weight(1f)

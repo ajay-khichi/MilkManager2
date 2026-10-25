@@ -155,4 +155,13 @@
     <string name="share_bill_pdf_title">দুধের বিল PDF শেয়ার করুন</string>
     <string name="error_sharing_pdf">PDF শেয়ার করতে ত্রুটি: %1$s</string>
     <string name="no_pdf_viewer">ডিভাইসে কোনো PDF ভিউয়ার অ্যাপ পাওয়া যায়নি</string>
+
+    <!-- About Ignishers -->
+    <string name="about_ignishers">Ignishers সম্পর্কে</string>
+    <string name="ignishers_community_tagline">ওপেন-সোর্স টেক এবং সাইবার নিরাপত্তা সম্প্রদায়</string>
+    <string name="ignishers_community_desc">Ignishers ব্যবহারিক ওপেন সোর্স প্রকল্প, বিকাশকারী সরঞ্জাম এবং প্রযুক্তি সমাধান তৈরির জন্য নিবেদিত। Milk Manager একটি দ্রুত, অফলাইন-প্রথম দুধ বিতরণ ব্যবস্থাপনা অ্যাপ।</string>
+    <string name="visit_website">ignishers.in দেখুন</string>
+    <string name="open_source">ওপেন সোর্স</string>
+    <string name="cybersecurity">সাইবার নিরাপত্তা</string>
+    <string name="offline_first">অফলাইন প্রথম</string>
 </resources>

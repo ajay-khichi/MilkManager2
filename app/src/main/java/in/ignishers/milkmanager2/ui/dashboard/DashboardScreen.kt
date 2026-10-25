@@ -32,10 +32,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.koin.androidx.compose.koinViewModel
 import `in`.ignishers.milkmanager2.R
 import `in`.ignishers.milkmanager2.models.Customer
@@ -453,26 +456,28 @@ fun DashboardScreen(
                     }
                 }
         ) {
+            val configuration = LocalConfiguration.current
+            val isCompact = configuration.screenWidthDp < 360
             
             if (currentRouteId == null) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(horizontal = if (isCompact) 12.dp else 16.dp, vertical = 8.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(if (isCompact) 12.dp else 16.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(stringResource(R.string.total_milk), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.labelLarge)
-                                Text("${totalMilk.toPlainString()} L", color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text("${totalMilk.toPlainString()} L", color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = if (isCompact) 18.sp else 22.sp, fontWeight = FontWeight.Bold)
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(stringResource(R.string.revenue), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.labelLarge)
-                                Text("₹${totalRevenue.toPlainString()}", color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text("₹${totalRevenue.toPlainString()}", color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = if (isCompact) 18.sp else 22.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                         HorizontalDivider(
@@ -619,7 +624,9 @@ fun RouteCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -677,7 +684,9 @@ fun CustomerCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f, fill = false)
+                    modifier = Modifier.weight(1f, fill = false),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 val due = customer.currentDue ?: BigDecimal.ZERO
@@ -685,7 +694,9 @@ fun CustomerCard(
                     text = stringResource(R.string.due_format, due.toPlainString()),
                     style = MaterialTheme.typography.titleSmall,
                     color = if (due > BigDecimal.ZERO) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))

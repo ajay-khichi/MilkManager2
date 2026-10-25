@@ -155,4 +155,13 @@
     <string name="share_bill_pdf_title">Share Milk Bill PDF</string>
     <string name="error_sharing_pdf">Error sharing PDF: %1$s</string>
     <string name="no_pdf_viewer">No PDF viewer app found on device</string>
+
+    <!-- About Ignishers -->
+    <string name="about_ignishers">About Ignishers</string>
+    <string name="ignishers_community_tagline">Open-Source Tech &amp; Cybersecurity Community</string>
+    <string name="ignishers_community_desc">Ignishers is dedicated to building, securing, and sharing practical open-source projects, developer tools, and technology solutions. Milk Manager is built as a fast, offline-first application for local businesses and dairy distribution.</string>
+    <string name="visit_website">Visit ignishers.in</string>
+    <string name="open_source">Open Source</string>
+    <string name="cybersecurity">Cybersecurity</string>
+    <string name="offline_first">Offline First</string>
 </resources>

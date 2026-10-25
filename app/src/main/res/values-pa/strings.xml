@@ -155,4 +155,13 @@
     <string name="share_bill_pdf_title">ਦੁੱਧ ਦਾ ਬਿੱਲ PDF ਸਾਂਝਾ ਕਰੋ</string>
     <string name="error_sharing_pdf">PDF ਸਾਂਝਾ ਕਰਨ ਵਿੱਚ ਗਲਤੀ: %1$s</string>
     <string name="no_pdf_viewer">ਡਿਵਾਈਸ \'ਤੇ ਕੋਈ PDF ਦਰਸ਼ਕ ਐਪ ਨਹੀਂ ਮਿਲਿਆ</string>
+
+    <!-- About Ignishers -->
+    <string name="about_ignishers">Ignishers ਬਾਰੇ</string>
+    <string name="ignishers_community_tagline">ਓਪਨ-ਸੋਰਸ ਟੈਕ ਅਤੇ ਸਾਈਬਰ ਸੁਰੱਖਿਆ ਕਮਿਊਨਿਟੀ</string>
+    <string name="ignishers_community_desc">Ignishers ਵਿਹਾਰਕ ਓਪਨ-ਸੋਰਸ ਪ੍ਰੋਜੈਕਟਾਂ, ਡਿਵੈਲਪਰ ਟੂਲਸ ਅਤੇ ਤਕਨੀਕੀ ਹੱਲਾਂ ਲਈ ਸਮਰਪਿਤ ਹੈ। Milk Manager ਇੱਕ ਤੇਜ਼, ਔਫਲਾਈਨ-ਪਹਿਲੀ ਦੁੱਧ ਵੰਡ ਪ੍ਰਬੰਧਨ ਐਪ ਹੈ।</string>
+    <string name="visit_website">ignishers.in \'ਤੇ ਜਾਓ</string>
+    <string name="open_source">ਓਪਨ ਸੋਰਸ</string>
+    <string name="cybersecurity">ਸਾਈਬਰ ਸੁਰੱਖਿਆ</string>
+    <string name="offline_first">ਔਫਲਾਈਨ ਪਹਿਲਾਂ</string>
 </resources>
