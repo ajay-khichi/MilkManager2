@@ -80,7 +80,7 @@ object AutoEntryManager {
             }
         }
 
-        if (showNotification) {
+        if (showNotification && processedCount > 0) {
             sendAutoEntryNotification(context, session, processedCount, totalMilkRecorded, totalAmountRecorded)
         }
 
@@ -98,12 +98,13 @@ object AutoEntryManager {
         var count = 0
 
         // Morning auto entry is scheduled for 5:00 AM
+        // Background catch-up on app open should run silently without posting notifications
         if (hour >= 5) {
-            count += executeAutoEntry(context, "Morning", today, showNotification = true)
+            count += executeAutoEntry(context, "Morning", today, showNotification = false)
         }
         // Evening auto entry is scheduled for 4:00 PM (16:00)
         if (hour >= 16) {
-            count += executeAutoEntry(context, "Evening", today, showNotification = true)
+            count += executeAutoEntry(context, "Evening", today, showNotification = false)
         }
         return count
     }

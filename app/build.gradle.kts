@@ -20,8 +20,8 @@ android {
         applicationId = "in.ignishers.milkmanager2"
         minSdk = 30
         targetSdk = 37
-        versionCode = 1
-        versionName = "2.4.8.1"
+        versionCode = 30100
+        versionName = "3.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -48,7 +48,15 @@ android {
 
     packaging {
         resources {
-            excludes += "META-INF/DEPENDENCIES"
+            excludes += listOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt"
+            )
         }
     }
 
@@ -107,4 +115,10 @@ dependencies {
 
     // Security
     implementation(libs.security.crypto)
+
+    // Google Play Services Auth & Google Drive REST API
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation("com.google.api-client:google-api-client-android:2.6.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20240123-2.0.0")
+    implementation("com.google.http-client:google-http-client-gson:1.44.2")
 }

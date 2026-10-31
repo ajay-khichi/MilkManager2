@@ -141,8 +141,8 @@ MilkManager2/
 | `compileSdk` | 36 |
 | `minSdk` | 30 |
 | `targetSdk` | 36 |
-| `versionCode` | 1 |
-| `versionName` | `"2.0"` |
+| `versionCode` | 30100 |
+| `versionName` | `"3.1.0"` |
 | `archivesBaseName` | `MilkManager2` |
 | `sourceCompatibility` | Java 11 |
 | `viewBinding` | enabled |
@@ -802,7 +802,7 @@ Provides delete-today-entry controls, quick-extras spinner, and manual entry but
 | `onResume` | Calls `updateButtonStates()` to reflect changes after dialogs close. |
 
 #### Spinner Values
-`{"Add Extra...", "250ml", "500ml", "750ml", "1l", "10rs", "20rs", "30rs", "50rs"}`
+`{"Add Extra...", "250ml", "500ml", "750ml", "1l", "2l", "10rs", "20rs", "30rs", "50rs"}`
 Selection triggers `MilkEntryViewModel.addQuickEntry`.
 
 ---

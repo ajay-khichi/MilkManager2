@@ -38,46 +38,98 @@ class PDFGenerator(
     private val colorWhite = Color.WHITE
     private val colorGreen = Color.parseColor("#10B981")
     private val colorRed = Color.parseColor("#EF4444")
+    private val colorExtra = Color.parseColor("#C2410C")
+    private val colorRegBadge = Color.parseColor("#0288D1")
+    private val colorExtraBadge = Color.parseColor("#EA580C")
+
+    private val badgeBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+
+    private val badgeTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        textSize = 5.2f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        textAlign = Paint.Align.CENTER
+    }
 
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = colorPrimaryDark
-        textSize = 22f
+        textSize = 17f
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
     }
 
     private val headerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = colorWhite
-        textSize = 9f
+        textSize = 8f
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
 
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = colorTextDark
-        textSize = 8.5f
+        textSize = 7.5f
     }
 
     private val boldTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = colorTextDark
-        textSize = 8.5f
+        textSize = 7.5f
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
 
     private val amountPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = colorPrimaryDark
-        textSize = 8.5f
+        textSize = 7.5f
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
 
     private val smallTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = colorTextLight
+        textSize = 7f
+    }
+
+    private val regSmallPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = colorPrimaryDark
+        textSize = 6.8f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
+
+    private val extraSmallPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = colorExtra
+        textSize = 6.8f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
+
+    private val extraPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = colorExtra
+        textSize = 7.5f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
+
+    private val centerSmallPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = colorTextLight
         textSize = 8f
+        textAlign = Paint.Align.CENTER
+    }
+
+    private val centerDatePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = colorTextDark
+        textSize = 8f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        textAlign = Paint.Align.CENTER
+    }
+
+    private val centerPayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = colorGreen
+        textSize = 7.8f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        textAlign = Paint.Align.CENTER
     }
 
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = colorBorder
         style = Paint.Style.STROKE
-        strokeWidth = 1f
+        strokeWidth = 0.8f
     }
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -86,11 +138,21 @@ class PDFGenerator(
 
     private val monthHeaderFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
 
+    class SessionData {
+        var regQ = 0.0
+        var regA = 0.0
+        var extraQ = 0.0
+        var extraA = 0.0
+
+        val totalQ: Double get() = regQ + extraQ
+        val totalA: Double get() = regA + extraA
+        val hasEntries: Boolean get() = totalQ > 0 || totalA > 0
+        val hasBoth: Boolean get() = (regQ > 0 || regA > 0) && (extraQ > 0 || extraA > 0)
+    }
+
     class DayData {
-        var mornQ = 0.0
-        var mornA = 0.0
-        var eveQ = 0.0
-        var eveA = 0.0
+        val morn = SessionData()
+        val eve = SessionData()
         var payA = 0.0
     }
 
@@ -190,24 +252,24 @@ class PDFGenerator(
     private fun drawWatermark(canvas: Canvas) {
         val watermarkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#0288D1")
-            alpha = 35 // ~14% opacity (10 to 20 percent visibility)
-            textSize = 66f
+            alpha = 30 // ~12% opacity
+            textSize = 48f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             textAlign = Paint.Align.CENTER
-            letterSpacing = 0.12f
+            letterSpacing = 0.10f
         }
         val subWatermarkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#0288D1")
-            alpha = 28 // ~11% opacity
-            textSize = 20f
+            alpha = 24 // ~9% opacity
+            textSize = 15f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             textAlign = Paint.Align.CENTER
-            letterSpacing = 0.18f
+            letterSpacing = 0.15f
         }
         canvas.save()
         canvas.rotate(-35f, PAGE_WIDTH / 2f, PAGE_HEIGHT / 2f)
-        canvas.drawText("IGNISHERS", PAGE_WIDTH / 2f, PAGE_HEIGHT / 2f - 12f, watermarkPaint)
-        canvas.drawText("ignishers.in", PAGE_WIDTH / 2f, PAGE_HEIGHT / 2f + 24f, subWatermarkPaint)
+        canvas.drawText("IGNISHERS", PAGE_WIDTH / 2f, PAGE_HEIGHT / 2f - 10f, watermarkPaint)
+        canvas.drawText("ignishers.in", PAGE_WIDTH / 2f, PAGE_HEIGHT / 2f + 18f, subWatermarkPaint)
         canvas.restore()
     }
 
@@ -222,20 +284,23 @@ class PDFGenerator(
         drawWatermark(canvas)
 
         // --- HEADER ---
-        var y = 40f
+        var y = 35f
 
         // App/Shop Title inside a rounded box
         fillPaint.color = colorBgAlt
-        canvas.drawRoundRect(MARGIN, 18f, PAGE_WIDTH - MARGIN, 58f, 8f, 8f, fillPaint)
-        canvas.drawRoundRect(MARGIN, 18f, PAGE_WIDTH - MARGIN, 58f, 8f, 8f, borderPaint)
-        canvas.drawText("MILK BILL STATEMENT", PAGE_WIDTH / 2f, 44f, titlePaint)
+        canvas.drawRoundRect(MARGIN, 14f, PAGE_WIDTH - MARGIN, 48f, 6f, 6f, fillPaint)
+        canvas.drawRoundRect(MARGIN, 14f, PAGE_WIDTH - MARGIN, 48f, 6f, 6f, borderPaint)
+        canvas.drawText("MILK BILL STATEMENT", PAGE_WIDTH / 2f, 36f, titlePaint)
 
-        y = 78f
+        y = 66f
         // Customer Info (Left)
-        canvas.drawText("Customer: ${customer.name ?: "N/A"}", MARGIN + 5, y, boldTextPaint)
-        canvas.drawText("Mobile: ${customer.mobile?.takeIf { it.isNotBlank() } ?: "-"}", MARGIN + 5, y + 14, textPaint)
-        val addr = if (customer.address.isNullOrEmpty()) "-" else customer.address
-        canvas.drawText("Address: $addr", MARGIN + 5, y + 28, textPaint)
+        val rawCustName = customer.name ?: "N/A"
+        val custName = if (rawCustName.length > 22) rawCustName.take(20) + "..." else rawCustName
+        canvas.drawText("Customer: $custName", MARGIN + 4f, y, boldTextPaint)
+        canvas.drawText("Mobile: ${customer.mobile?.takeIf { it.isNotBlank() } ?: "-"}", MARGIN + 4f, y + 13f, textPaint)
+        val rawAddr = customer.address?.takeIf { it.isNotBlank() } ?: "-"
+        val addr = if (rawAddr.length > 24) rawAddr.take(22) + "..." else rawAddr
+        canvas.drawText("Address: $addr", MARGIN + 4f, y + 26f, textPaint)
 
         // Month Info (Right)
         val monthDate = try { LocalDate.parse("$monthKey-01") } catch (_: Exception) { LocalDate.now() }
@@ -243,26 +308,26 @@ class PDFGenerator(
 
         val rightAlign = Paint(boldTextPaint).apply {
             textAlign = Paint.Align.RIGHT
-            textSize = 12f
+            textSize = 10f
             color = colorPrimaryDark
         }
-        canvas.drawText("Bill Month: $monthTitle", PAGE_WIDTH - MARGIN - 5, y + 14, rightAlign)
+        canvas.drawText("Month: $monthTitle", PAGE_WIDTH - MARGIN - 4f, y + 13f, rightAlign)
 
         val totalDueRight = Paint(amountPaint).apply {
             textAlign = Paint.Align.RIGHT
-            textSize = 10f
+            textSize = 9.5f
             color = if ((customer.currentDue ?: java.math.BigDecimal.ZERO) > java.math.BigDecimal.ZERO) colorRed else colorGreen
         }
-        canvas.drawText("Total Current Due: ₹${customer.currentDue ?: 0}", PAGE_WIDTH - MARGIN - 5, y + 28, totalDueRight)
+        canvas.drawText("Current Due: ₹${customer.currentDue ?: 0}", PAGE_WIDTH - MARGIN - 4f, y + 26f, totalDueRight)
 
         // --- TABLE ---
-        y = 125f
+        y = 108f
         val tableTop = y
         val rowHeight = 25f
-        val headerHeight = 20f
+        val headerHeight = 18f
 
-        // 4 Columns per side: Date (30), Morning (80), Evening (80), Payment (87.5) = 277.5
-        val colWidths = floatArrayOf(32f, 80f, 80f, 85.5f)
+        // 4 Columns per side: Date (24), Morning (60), Evening (60), Payment (48) = 192f
+        val colWidths = floatArrayOf(24f, 60f, 60f, 48f)
         val halfWidth = (PAGE_WIDTH - 2 * MARGIN) / 2f
 
         // Draw Header Bg
@@ -270,7 +335,7 @@ class PDFGenerator(
         canvas.drawRect(MARGIN, y, PAGE_WIDTH - MARGIN, y + headerHeight, fillPaint)
 
         // Draw Header Text
-        val headerY = y + 14f
+        val headerY = y + 12.5f
         drawRowHeaders(canvas, headerY, MARGIN, colWidths)
         drawRowHeaders(canvas, headerY, MARGIN + halfWidth, colWidths)
 
@@ -280,7 +345,7 @@ class PDFGenerator(
         val daysInMonth = monthDate.lengthOfMonth()
         val days = Array(32) { DayData() }
 
-        // Fill milk transactions
+        // Fill milk transactions with separation of Regular and Extra
         for (t in monthTrans) {
             val dateStr = t.date ?: continue
             if (dateStr.length < 10) continue
@@ -289,12 +354,13 @@ class PDFGenerator(
                 val d = days[dayOfMonth]
                 val amt = t.amount?.toDouble() ?: 0.0
                 val qty = t.quantity?.toDouble() ?: 0.0
-                if (t.session.equals("Evening", ignoreCase = true)) {
-                    d.eveQ += qty
-                    d.eveA += amt
+                val s = if (t.session.equals("Evening", ignoreCase = true)) d.eve else d.morn
+                if (t.milkType.equals("Extra", ignoreCase = true)) {
+                    s.extraQ += qty
+                    s.extraA += amt
                 } else {
-                    d.mornQ += qty
-                    d.mornA += amt
+                    s.regQ += qty
+                    s.regA += amt
                 }
             }
         }
@@ -347,15 +413,15 @@ class PDFGenerator(
         drawColumnDividers(canvas, tableTop, tableBottom, midX, colWidths)
 
         // --- SUMMARY SECTION ---
-        y = tableBottom + 16f
+        y = tableBottom + 12f
 
         var totalMilk = 0.0
         var totalBill = 0.0
         var totalPayInMonth = 0.0
         for (i in 1..daysInMonth) {
             val d = days[i]
-            totalMilk += d.mornQ + d.eveQ
-            totalBill += d.mornA + d.eveA
+            totalMilk += d.morn.totalQ + d.eve.totalQ
+            totalBill += d.morn.totalA + d.eve.totalA
             totalPayInMonth += d.payA
         }
 
@@ -364,90 +430,92 @@ class PDFGenerator(
         val finalDue = monthBalance - postMonthTotal
 
         val sumBoxTop = y
-        val sumBoxHeight = if (postMonthTotal > 0) 130f else 115f
+        val sumBoxHeight = if (postMonthTotal > 0) 116f else 100f
         fillPaint.color = colorBgAlt
-        canvas.drawRoundRect(MARGIN, sumBoxTop, PAGE_WIDTH - MARGIN, sumBoxTop + sumBoxHeight, 8f, 8f, fillPaint)
-        canvas.drawRoundRect(MARGIN, sumBoxTop, PAGE_WIDTH - MARGIN, sumBoxTop + sumBoxHeight, 8f, 8f, borderPaint)
+        canvas.drawRoundRect(MARGIN, sumBoxTop, PAGE_WIDTH - MARGIN, sumBoxTop + sumBoxHeight, 6f, 6f, fillPaint)
+        canvas.drawRoundRect(MARGIN, sumBoxTop, PAGE_WIDTH - MARGIN, sumBoxTop + sumBoxHeight, 6f, 6f, borderPaint)
 
         // Summary Header Strip
         fillPaint.color = colorPrimary
-        canvas.drawRoundRect(MARGIN, sumBoxTop, PAGE_WIDTH - MARGIN, sumBoxTop + 22f, 8f, 8f, fillPaint)
-        canvas.drawRect(MARGIN, sumBoxTop + 14f, PAGE_WIDTH - MARGIN, sumBoxTop + 22f, fillPaint)
+        canvas.drawRoundRect(MARGIN, sumBoxTop, PAGE_WIDTH - MARGIN, sumBoxTop + 20f, 6f, 6f, fillPaint)
+        canvas.drawRect(MARGIN, sumBoxTop + 12f, PAGE_WIDTH - MARGIN, sumBoxTop + 20f, fillPaint)
 
-        val summaryTitlePaint = Paint(headerPaint).apply { textSize = 10f; textAlign = Paint.Align.CENTER }
-        canvas.drawText("MONTHLY SUMMARY & SETTLEMENT", PAGE_WIDTH / 2f, sumBoxTop + 15f, summaryTitlePaint)
+        val summaryTitlePaint = Paint(headerPaint).apply { textSize = 8.5f; textAlign = Paint.Align.CENTER }
+        canvas.drawText("MONTHLY SUMMARY & SETTLEMENT", PAGE_WIDTH / 2f, sumBoxTop + 13.5f, summaryTitlePaint)
 
-        y = sumBoxTop + 40f
-        val col1X = MARGIN + 12f
-        val col2X = midX + 12f
+        y = sumBoxTop + 34f
+        val col1X = MARGIN + 8f
+        val col2X = midX + 8f
 
         canvas.drawText("Previous Due:", col1X, y, boldTextPaint)
-        canvas.drawText(String.format("₹ %.2f", startBal), col1X + 90f, y, textPaint)
+        canvas.drawText(String.format(java.util.Locale.US, "₹ %.2f", startBal), col1X + 70f, y, textPaint)
 
         canvas.drawText("Total Milk:", col2X, y, boldTextPaint)
-        canvas.drawText(formatMilk(totalMilk), col2X + 95f, y, textPaint)
+        canvas.drawText(formatMilk(totalMilk), col2X + 65f, y, textPaint)
 
-        y += 18f
+        y += 16f
         canvas.drawText("This Month Bill:", col1X, y, boldTextPaint)
-        canvas.drawText(String.format("+ ₹ %.2f", totalBill), col1X + 90f, y, amountPaint)
+        canvas.drawText(String.format(java.util.Locale.US, "+ ₹ %.2f", totalBill), col1X + 70f, y, amountPaint)
 
         canvas.drawText("Paid in Month:", col2X, y, boldTextPaint)
-        canvas.drawText(String.format("- ₹ %.2f", totalPayInMonth), col2X + 95f, y, textPaint)
+        canvas.drawText(String.format(java.util.Locale.US, "- ₹ %.2f", totalPayInMonth), col2X + 65f, y, textPaint)
 
         if (postMonthTotal > 0) {
-            y += 18f
+            y += 16f
             val lastPay = postMonthPayments.lastOrNull()
             val payDateStr = lastPay?.date ?: "Next Month"
-            canvas.drawText("Next Month Payment:", col1X, y, boldTextPaint)
+            canvas.drawText("Next Month Pay:", col1X, y, boldTextPaint)
             val postPayPaint = Paint(amountPaint).apply { color = colorGreen }
-            canvas.drawText(String.format("- ₹ %.2f (%s)", postMonthTotal, payDateStr), col1X + 115f, y, postPayPaint)
+            canvas.drawText(String.format(java.util.Locale.US, "- ₹ %.2f (%s)", postMonthTotal, payDateStr), col1X + 80f, y, postPayPaint)
         }
 
-        y += 22f
-        canvas.drawLine(MARGIN + 10f, y - 8f, PAGE_WIDTH - MARGIN - 10f, y - 8f, borderPaint)
+        y += 20f
+        canvas.drawLine(MARGIN + 6f, y - 6f, PAGE_WIDTH - MARGIN - 6f, y - 6f, borderPaint)
 
-        val finalPaint = Paint(boldTextPaint).apply { textSize = 12f; color = colorPrimaryDark }
-        canvas.drawText("FINAL DUE AMOUNT:", col1X, y + 5f, finalPaint)
+        val finalPaint = Paint(boldTextPaint).apply { textSize = 10f; color = colorPrimaryDark }
+        canvas.drawText("FINAL DUE:", col1X, y + 4f, finalPaint)
 
         val finalAmtPaint = Paint(amountPaint).apply {
-            textSize = 14f
-            textAlign = Paint.Align.RIGHT
+            textSize = 12f
             color = if (finalDue > 0) colorRed else colorGreen
         }
-        canvas.drawText(String.format("₹ %.2f", finalDue), PAGE_WIDTH - MARGIN - 110f, y + 5f, finalAmtPaint)
+        canvas.drawText(String.format(java.util.Locale.US, "₹ %.2f", finalDue), col1X + 60f, y + 4f, finalAmtPaint)
 
-        // Status Stamp: [ PAID ] or [ DUE ]
+        // Status Stamp: [ PAID ] or [ PENDING ]
         val stampText = if (finalDue <= 0.0) "PAID" else "PENDING"
         val stampColor = if (finalDue <= 0.0) colorGreen else colorRed
 
         val stampBoxPaint = Paint(borderPaint).apply {
             color = stampColor
-            strokeWidth = 1.5f
+            strokeWidth = 1.2f
         }
         val stampTextPaint = Paint(boldTextPaint).apply {
             color = stampColor
-            textSize = 11f
+            textSize = 9.5f
             textAlign = Paint.Align.CENTER
         }
-        val stampLeft = PAGE_WIDTH - MARGIN - 90f
+        val stampRight = PAGE_WIDTH - MARGIN - 8f
+        val stampLeft = stampRight - 62f
         val stampTop = y - 8f
-        canvas.drawRoundRect(stampLeft, stampTop, PAGE_WIDTH - MARGIN - 10f, stampTop + 20f, 4f, 4f, stampBoxPaint)
-        canvas.drawText(stampText, stampLeft + 40f, stampTop + 14f, stampTextPaint)
+        canvas.drawRoundRect(stampLeft, stampTop, stampRight, stampTop + 16f, 3f, 3f, stampBoxPaint)
+        canvas.drawText(stampText, (stampLeft + stampRight) / 2f, stampTop + 11.5f, stampTextPaint)
 
         // Watermark Footer
         val footerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = colorTextLight
-            textSize = 9f
+            textSize = 8f
             textAlign = Paint.Align.CENTER
         }
-        canvas.drawText("Generated by MilkManager • Powered by Ignishers (ignishers.in)", PAGE_WIDTH / 2f, PAGE_HEIGHT - 20f, footerPaint)
+        canvas.drawText("Generated by MilkManager • Powered by Ignishers (ignishers.in)", PAGE_WIDTH / 2f, PAGE_HEIGHT - 12f, footerPaint)
     }
 
     private fun drawRowHeaders(canvas: Canvas, y: Float, startX: Float, colWidths: FloatArray) {
         var curX = startX
         val headers = arrayOf("Date", "Morning", "Evening", "Payment")
+        val headerCenterPaint = Paint(headerPaint).apply { textAlign = Paint.Align.CENTER }
         for (i in headers.indices) {
-            canvas.drawText(headers[i], curX + 6f, y, headerPaint)
+            val centerX = curX + colWidths[i] / 2f
+            canvas.drawText(headers[i], centerX, y, headerCenterPaint)
             curX += colWidths[i]
         }
     }
@@ -466,54 +534,108 @@ class PDFGenerator(
         var curX = startX
 
         // 1. Date (e.g. 01, 02)
-        val dateDay = String.format("%02d", day)
-        canvas.drawText(dateDay, curX + 8f, rowY + 16f, boldTextPaint)
+        val dateDay = String.format(java.util.Locale.US, "%02d", day)
+        canvas.drawText(dateDay, curX + colWidths[0] / 2f, rowY + 15.5f, centerDatePaint)
         curX += colWidths[0]
 
         // 2. Morning Milk
-        if (d.mornQ > 0 || d.mornA > 0) {
-            canvas.drawText(formatMilk(d.mornQ), curX + 6f, rowY + 11f, textPaint)
-            canvas.drawText(String.format("₹%.0f", d.mornA), curX + 6f, rowY + 21f, amountPaint)
-        } else {
-            canvas.drawText("-", curX + 24f, rowY + 16f, smallTextPaint)
-        }
+        drawSessionCell(canvas, d.morn, rowY, curX, colWidths[1])
         curX += colWidths[1]
 
         // 3. Evening Milk
-        if (d.eveQ > 0 || d.eveA > 0) {
-            canvas.drawText(formatMilk(d.eveQ), curX + 6f, rowY + 11f, textPaint)
-            canvas.drawText(String.format("₹%.0f", d.eveA), curX + 6f, rowY + 21f, amountPaint)
-        } else {
-            canvas.drawText("-", curX + 24f, rowY + 16f, smallTextPaint)
-        }
+        drawSessionCell(canvas, d.eve, rowY, curX, colWidths[2])
         curX += colWidths[2]
 
         // 4. Payment
         if (d.payA > 0) {
-            val payPaint = Paint(amountPaint).apply { color = colorGreen }
-            canvas.drawText(String.format("₹%.0f", d.payA), curX + 6f, rowY + 16f, payPaint)
+            canvas.drawText("₹${formatAmt(d.payA)}", curX + colWidths[3] / 2f, rowY + 15.5f, centerPayPaint)
         } else {
-            canvas.drawText("-", curX + 28f, rowY + 16f, smallTextPaint)
+            canvas.drawText("-", curX + colWidths[3] / 2f, rowY + 15.5f, centerSmallPaint)
         }
+    }
+
+    private fun drawSessionCell(canvas: Canvas, s: SessionData, rowY: Float, curX: Float, colWidth: Float) {
+        if (!s.hasEntries) {
+            canvas.drawText("-", curX + colWidth / 2f, rowY + 15.5f, centerSmallPaint)
+            return
+        }
+
+        val badgeCx = curX + 6.5f
+        val textStartX = curX + 13f
+
+        if (s.hasBoth) {
+            // Both Regular and Extra entries exist - draw colored circle badge R and E first!
+            val line1CenterY = rowY + 8f
+            drawTypeBadge(canvas, "R", badgeCx, line1CenterY, 4f)
+            val rText = "${formatQty(s.regQ)} (₹${formatAmt(s.regA)})"
+            canvas.drawText(rText, textStartX, rowY + 10.5f, regSmallPaint)
+
+            val line2CenterY = rowY + 18f
+            drawTypeBadge(canvas, "E", badgeCx, line2CenterY, 4f)
+            val eText = "${formatQty(s.extraQ)} (₹${formatAmt(s.extraA)})"
+            canvas.drawText(eText, textStartX, rowY + 20.5f, extraSmallPaint)
+        } else if (s.regQ > 0 || s.regA > 0) {
+            // Only Regular entry exists - Badge 'R' first
+            val line1CenterY = rowY + 8f
+            drawTypeBadge(canvas, "R", badgeCx, line1CenterY, 4f)
+            canvas.drawText(formatQty(s.regQ), textStartX, rowY + 10.5f, boldTextPaint)
+            canvas.drawText("₹${formatAmt(s.regA)}", textStartX, rowY + 20.5f, amountPaint)
+        } else {
+            // Only Extra entry exists - Badge 'E' first
+            val line1CenterY = rowY + 8f
+            drawTypeBadge(canvas, "E", badgeCx, line1CenterY, 4f)
+            canvas.drawText(formatQty(s.extraQ), textStartX, rowY + 10.5f, extraPaint)
+            canvas.drawText("₹${formatAmt(s.extraA)}", textStartX, rowY + 20.5f, amountPaint)
+        }
+    }
+
+    private fun drawTypeBadge(canvas: Canvas, type: String, cx: Float, cy: Float, radius: Float = 4f) {
+        val isExtra = type.equals("E", ignoreCase = true)
+        badgeBgPaint.color = if (isExtra) colorExtraBadge else colorRegBadge
+        canvas.drawCircle(cx, cy, radius, badgeBgPaint)
+        val textY = cy - ((badgeTextPaint.descent() + badgeTextPaint.ascent()) / 2f)
+        canvas.drawText(type, cx, textY, badgeTextPaint)
     }
 
     private fun drawEmptyDayCell(canvas: Canvas, rowY: Float, startX: Float, colWidths: FloatArray) {
         var curX = startX
         for (i in colWidths.indices) {
-            canvas.drawText("-", curX + 12f, rowY + 16f, smallTextPaint)
+            val centerX = curX + colWidths[i] / 2f
+            canvas.drawText("-", centerX, rowY + 15.5f, centerSmallPaint)
             curX += colWidths[i]
         }
     }
 
+    private fun formatQty(qty: Double): String {
+        val s = if (qty % 1.0 == 0.0) {
+            qty.toInt().toString()
+        } else {
+            String.format(java.util.Locale.US, "%.2f", qty).trimEnd('0').trimEnd('.')
+        }
+        return "${s}L"
+    }
+
+    private fun formatAmt(amt: Double): String {
+        return if (amt % 1.0 == 0.0) {
+            amt.toInt().toString()
+        } else {
+            String.format(java.util.Locale.US, "%.1f", amt).trimEnd('0').trimEnd('.')
+        }
+    }
+
     private fun formatMilk(qty: Double): String {
-        return if (qty >= 1.0) String.format("%.1f L", qty)
-        else String.format("%d ml", (qty * 1000).toInt())
+        val s = if (qty % 1.0 == 0.0) {
+            qty.toInt().toString()
+        } else {
+            String.format(java.util.Locale.US, "%.1f", qty).trimEnd('0').trimEnd('.')
+        }
+        return "$s L"
     }
 
     companion object {
-        const val PAGE_WIDTH = 595
-        const val PAGE_HEIGHT = 842
-        const val MARGIN = 18f
+        const val PAGE_WIDTH = 412
+        const val PAGE_HEIGHT = 680
+        const val MARGIN = 14f
 
         fun generateCustomerMonthlyPDF(context: Context, reportData: `in`.ignishers.milkmanager2.ui.pos.BillReportData): File {
             val custName = (reportData.customer.name ?: "Customer").replace("[^a-zA-Z0-9]".toRegex(), "_")

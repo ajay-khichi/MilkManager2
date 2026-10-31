@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import `in`.ignishers.milkmanager2.ui.dashboard.DashboardScreen
 import `in`.ignishers.milkmanager2.ui.pos.PointOfSaleScreen
+import `in`.ignishers.milkmanager2.ui.sales.SalesAnalyticsScreen
 import `in`.ignishers.milkmanager2.ui.settings.SettingsScreen
 
 @Composable
@@ -28,6 +29,9 @@ fun AppNavigation() {
                 },
                 onNavigateToSettings = {
                     navController.navigate("settings")
+                },
+                onNavigateToSalesAnalytics = {
+                    navController.navigate("sales_analytics")
                 }
             )
         }
@@ -40,16 +44,25 @@ fun AppNavigation() {
             DashboardScreen(
                 currentRouteId = routeId,
                 onNavigateToRoute = { subRouteId ->
-                    navController.navigate("route/$subRouteId")
+                    val popped = navController.popBackStack("route/$subRouteId", inclusive = false)
+                    if (!popped) {
+                        navController.navigate("route/$subRouteId")
+                    }
                 },
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToRoot = {
+                    navController.popBackStack("dashboard", inclusive = false)
                 },
                 onNavigateToPos = { customerId ->
                     navController.navigate("pos/$customerId")
                 },
                 onNavigateToSettings = {
                     navController.navigate("settings")
+                },
+                onNavigateToSalesAnalytics = {
+                    navController.navigate("sales_analytics")
                 }
             )
         }
@@ -67,6 +80,12 @@ fun AppNavigation() {
 
         composable("settings") {
             SettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("sales_analytics") {
+            SalesAnalyticsScreen(
                 onBack = { navController.popBackStack() }
             )
         }

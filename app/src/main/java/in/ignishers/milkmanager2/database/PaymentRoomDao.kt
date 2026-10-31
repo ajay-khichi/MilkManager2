@@ -36,4 +36,10 @@ interface PaymentRoomDao {
 
     @Query("SELECT SUM(payment_amount) FROM payment")
     suspend fun getTotalCollectedLifetime(): BigDecimal?
+
+    @Query("SELECT SUM(payment_amount) FROM payment WHERE payment_date >= :startDate AND payment_date <= :endDate")
+    suspend fun getTotalCollectedDateRange(startDate: String, endDate: String): BigDecimal?
+
+    @Query("SELECT * FROM payment WHERE payment_date >= :startDate AND payment_date <= :endDate ORDER BY payment_date ASC, payment_id ASC")
+    suspend fun getPaymentsDateRange(startDate: String, endDate: String): List<Payment>
 }

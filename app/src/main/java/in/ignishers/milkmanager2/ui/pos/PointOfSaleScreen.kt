@@ -9,7 +9,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -475,7 +477,7 @@ fun PointOfSaleScreen(
                                     Surface(
                                         modifier = Modifier
                                             .width(if (menuWidthDp > 100.dp) menuWidthDp else 180.dp)
-                                            .heightIn(max = 260.dp),
+                                            .heightIn(max = 300.dp),
                                         shape = RoundedCornerShape(12.dp),
                                         color = MaterialTheme.colorScheme.surface,
                                         tonalElevation = 6.dp,
@@ -495,7 +497,8 @@ fun PointOfSaleScreen(
                                                 "250ml" to "250 ml",
                                                 "500ml" to "500 ml",
                                                 "750ml" to "750 ml",
-                                                "1l" to "1 Litre"
+                                                "1l" to "1 Litre",
+                                                "2l" to "2 Litre"
                                             )
                                             quickOptions.forEach { (key, label) ->
                                                 DropdownMenuItem(
@@ -1813,6 +1816,7 @@ fun StatementPreviewDialog(
     val density = LocalDensity.current
     val swipeThreshold = remember(density) { with(density) { 50.dp.toPx() } }
     var dialogDragX by remember { mutableFloatStateOf(0f) }
+    val isDark = isSystemInDarkTheme()
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1820,8 +1824,8 @@ fun StatementPreviewDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.98f)
-                .fillMaxHeight(0.96f)
+                .fillMaxWidth(0.99f)
+                .fillMaxHeight(0.97f)
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragStart = { dialogDragX = 0f },
@@ -1856,7 +1860,7 @@ fun StatementPreviewDialog(
         ) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val isCompact = maxWidth < 480.dp
-                val horizontalPad = if (isCompact) 8.dp else 12.dp
+                val horizontalPad = if (isCompact) 6.dp else 12.dp
                 val verticalPad = if (isCompact) 8.dp else 12.dp
 
                 Column(
@@ -1873,14 +1877,16 @@ fun StatementPreviewDialog(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = reportData.customer.name ?: "Customer",
-                                style = if (isCompact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = if (isCompact) 18.sp else 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = if (reportData.months.size > 1) reportData.title else (currentMonthData?.monthTitle ?: reportData.title),
-                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = if (isCompact) 12.sp else 13.5.sp,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -1912,9 +1918,23 @@ fun StatementPreviewDialog(
                                     selectedMonthIndex--
                                 }
                             },
-                            enabled = canGoPrev
+                            enabled = canGoPrev,
+                            modifier = Modifier.size(36.dp)
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Month")
+                            Surface(
+                                shape = CircleShape,
+                                color = if (canGoPrev) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Previous Month",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = if (canGoPrev) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                    )
+                                }
+                            }
                         }
 
                         Column(
@@ -1923,7 +1943,7 @@ fun StatementPreviewDialog(
                         ) {
                             Text(
                                 text = currentMonthData?.monthTitle ?: reportData.title,
-                                fontSize = if (isCompact) 18.sp else 22.sp,
+                                fontSize = if (isCompact) 19.sp else 23.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.primary,
                                 maxLines = 1,
@@ -1932,8 +1952,8 @@ fun StatementPreviewDialog(
                             if (reportData.months.size > 1) {
                                 Text(
                                     text = "${selectedMonthIndex + 1} of ${reportData.months.size} (${reportData.title})",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = if (isCompact) 11.5.sp else 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -1949,120 +1969,191 @@ fun StatementPreviewDialog(
                                     selectedMonthIndex++
                                 }
                             },
-                            enabled = canGoNext
+                            enabled = canGoNext,
+                            modifier = Modifier.size(36.dp)
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Month")
+                            Surface(
+                                shape = CircleShape,
+                                color = if (canGoNext) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = "Next Month",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = if (canGoNext) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                    )
+                                }
+                            }
                         }
                     }
 
-                    // Month Summary Box (Adaptive 2-Column Grid)
+                    // Month Summary Box (Colorful 2x2 Grid)
                     if (currentMonthData != null) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
-                            shape = RoundedCornerShape(10.dp)
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            // Row 1: Opening Due & Milk Bill
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                // Row 1: Opening Due (Left) & Milk Bill (Right)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                // Opening Due
+                                val hasOpeningDue = currentMonthData.openingBalance > BigDecimal.ZERO
+                                Surface(
+                                    modifier = Modifier.weight(1f),
+                                    color = if (isDark) Color(0xFF431407).copy(alpha = 0.45f) else Color(0xFFFFF7ED),
+                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF9A3412).copy(alpha = 0.5f) else Color(0xFFFED7AA)),
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
                                         Text(
-                                            text = stringResource(R.string.opening_due_format, "").replace(":", "").replace("₹", "").trim(),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            text = stringResource(R.string.opening_due_format, "").replace(":", "").replace("₹", "").trim().ifBlank { "Opening Due" },
+                                            fontSize = if (isCompact) 11.5.sp else 12.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDark) Color(0xFFFB923C) else Color(0xFFC2410C),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
+                                        Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = "₹${currentMonthData.openingBalance.toPlainString()}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (currentMonthData.openingBalance > BigDecimal.ZERO) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            text = stringResource(R.string.milk_bill_format, "", "").substringBefore(":").trim().takeIf { it.isNotBlank() } ?: "Milk Bill",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Text(
-                                            text = "${currentMonthData.totalMilk.toPlainString()}L (₹${currentMonthData.totalBill.toPlainString()})",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Bold,
+                                            fontSize = if (isCompact) 14.5.sp else 16.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = if (hasOpeningDue) (if (isDark) Color(0xFFFDBA74) else Color(0xFFEA580C)) else MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                 }
 
-                                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-
-                                // Row 2: Paid in Month (Left) & Final Due + Status Badge (Right)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                // Milk Bill
+                                Surface(
+                                    modifier = Modifier.weight(1f),
+                                    color = if (isDark) Color(0xFF1E3A8A).copy(alpha = 0.35f) else Color(0xFFEFF6FF),
+                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF2563EB).copy(alpha = 0.45f) else Color(0xFFBFDBFE)),
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
                                         Text(
-                                            text = stringResource(R.string.month_paid_format, "").replace(":", "").replace("₹", "").trim(),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            text = stringResource(R.string.milk_bill_format, "", "").substringBefore(":").trim().takeIf { it.isNotBlank() } ?: "Milk Bill",
+                                            fontSize = if (isCompact) 11.5.sp else 12.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
+                                        Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = "₹${currentMonthData.paidInMonth.toPlainString()}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF10B981),
+                                            text = "${currentMonthData.totalMilk.toPlainString()}L (₹${currentMonthData.totalBill.toPlainString()})",
+                                            fontSize = if (isCompact) 13.5.sp else 15.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = if (isDark) Color(0xFF93C5FD) else Color(0xFF1E40AF),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
-                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                                }
+                            }
+
+                            // Row 2: Paid in Month & Final Due + Status Badge
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                // Paid in Month
+                                Surface(
+                                    modifier = Modifier.weight(1f),
+                                    color = if (isDark) Color(0xFF064E3B).copy(alpha = 0.4f) else Color(0xFFECFDF5),
+                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF059669).copy(alpha = 0.45f) else Color(0xFFA7F3D0)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
                                         Text(
-                                            text = stringResource(R.string.final_due).replace(":", "").trim(),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            text = stringResource(R.string.month_paid_format, "").replace(":", "").replace("₹", "").trim().ifBlank { "Paid in Month" },
+                                            fontSize = if (isCompact) 11.5.sp else 12.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDark) Color(0xFF34D399) else Color(0xFF047857),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "₹${currentMonthData.paidInMonth.toPlainString()}",
+                                            fontSize = if (isCompact) 14.5.sp else 16.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = if (isDark) Color(0xFF6EE7B7) else Color(0xFF059669),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                // Final Due
+                                val hasDue = currentMonthData.finalDue > BigDecimal.ZERO
+                                Surface(
+                                    modifier = Modifier.weight(1f),
+                                    color = if (hasDue) {
+                                        if (isDark) Color(0xFF450A0A).copy(alpha = 0.45f) else Color(0xFFFEF2F2)
+                                    } else {
+                                        if (isDark) Color(0xFF064E3B).copy(alpha = 0.4f) else Color(0xFFECFDF5)
+                                    },
+                                    border = BorderStroke(1.dp, if (hasDue) {
+                                        if (isDark) Color(0xFFDC2626).copy(alpha = 0.45f) else Color(0xFFFECACA)
+                                    } else {
+                                        if (isDark) Color(0xFF059669).copy(alpha = 0.45f) else Color(0xFFA7F3D0)
+                                    }),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.final_due).replace(":", "").trim().ifBlank { "Final Due" },
+                                            fontSize = if (isCompact) 11.5.sp else 12.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (hasDue) (if (isDark) Color(0xFFF87171) else Color(0xFFB91C1C)) else (if (isDark) Color(0xFF34D399) else Color(0xFF047857)),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.End
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
                                             Text(
                                                 text = "₹${currentMonthData.finalDue}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (currentMonthData.finalDue > BigDecimal.ZERO) MaterialTheme.colorScheme.error else Color(0xFF10B981),
+                                                fontSize = if (isCompact) 14.5.sp else 16.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = if (hasDue) (if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626)) else (if (isDark) Color(0xFF6EE7B7) else Color(0xFF059669)),
                                                 maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
                                             Surface(
                                                 shape = RoundedCornerShape(4.dp),
-                                                color = if (currentMonthData.isPaid) Color(0xFF10B981).copy(alpha = 0.18f) else MaterialTheme.colorScheme.error.copy(alpha = 0.18f)
+                                                color = if (currentMonthData.isPaid) Color(0xFF10B981) else Color(0xFFEF4444)
                                             ) {
                                                 Text(
                                                     text = if (currentMonthData.isPaid) "PAID" else "PENDING",
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                                    fontSize = if (isCompact) 10.sp else 11.sp,
                                                     fontWeight = FontWeight.ExtraBold,
-                                                    color = if (currentMonthData.isPaid) Color(0xFF10B981) else MaterialTheme.colorScheme.error,
+                                                    color = Color.White,
                                                     maxLines = 1,
                                                     softWrap = false
                                                 )
@@ -2070,51 +2161,54 @@ fun StatementPreviewDialog(
                                         }
                                     }
                                 }
+                            }
 
-                                if (currentMonthData.postMonthPayments.isNotEmpty()) {
-                                    val postPaidTotal = currentMonthData.postMonthPayments.sumOf { it.amount }
-                                    Surface(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        color = Color(0xFF10B981).copy(alpha = 0.12f),
-                                        shape = RoundedCornerShape(4.dp)
-                                    ) {
-                                        Text(
-                                            text = "Settlement: -₹$postPaidTotal paid in subsequent month",
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                            color = Color(0xFF047857),
-                                            fontWeight = FontWeight.SemiBold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
+                            // Settlement banner (if any)
+                            if (currentMonthData.postMonthPayments.isNotEmpty()) {
+                                val postPaidTotal = currentMonthData.postMonthPayments.sumOf { it.amount }
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = if (isDark) Color(0xFF064E3B).copy(alpha = 0.35f) else Color(0xFFF0FDF4),
+                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF059669).copy(alpha = 0.4f) else Color(0xFF86EFAC)),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        text = "Settlement: -₹$postPaidTotal paid in subsequent month",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        fontSize = if (isCompact) 11.5.sp else 12.5.sp,
+                                        color = if (isDark) Color(0xFF6EE7B7) else Color(0xFF065F46),
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     // 16 * 16 Table Header (Date, Morning, Evening, Payment on Left & Right)
+                    val tableHeaderColor = if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.primary
                     Surface(
-                        color = MaterialTheme.colorScheme.primary,
+                        color = tableHeaderColor,
                         shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 2.dp, vertical = 6.dp),
+                                .padding(horizontal = 2.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            DayHalfHeader(isCompact = isCompact, modifier = Modifier.weight(1f))
+                            DayHalfHeader(isCompact = isCompact, isDark = isDark, modifier = Modifier.weight(1f))
                             Box(
                                 modifier = Modifier
-                                    .width(1.dp)
-                                    .height(16.dp)
-                                    .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f))
+                                    .width(1.5.dp)
+                                    .height(18.dp)
+                                    .background(Color.White.copy(alpha = 0.35f))
                             )
-                            DayHalfHeader(isCompact = isCompact, modifier = Modifier.weight(1f))
+                            DayHalfHeader(isCompact = isCompact, isDark = isDark, modifier = Modifier.weight(1f))
                         }
                     }
 
@@ -2143,7 +2237,7 @@ fun StatementPreviewDialog(
                             val rowBg = if (i % 2 == 0) {
                                 MaterialTheme.colorScheme.surface
                             } else {
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                                if (isDark) Color(0xFF1E293B).copy(alpha = 0.45f) else Color(0xFFF8FAFC)
                             }
 
                             Surface(
@@ -2161,6 +2255,7 @@ fun StatementPreviewDialog(
                                         dayNum = leftDay,
                                         dayItem = leftItem,
                                         isCompact = isCompact,
+                                        isDark = isDark,
                                         modifier = Modifier.weight(1f)
                                     )
                                     Box(
@@ -2173,6 +2268,7 @@ fun StatementPreviewDialog(
                                         dayNum = if (rightDay <= daysInMonth) rightDay else null,
                                         dayItem = rightItem,
                                         isCompact = isCompact,
+                                        isDark = isDark,
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
@@ -2188,19 +2284,22 @@ fun StatementPreviewDialog(
 
                     // Bottom Action Buttons: PDF View, Share, Save
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedButton(
                             onClick = onOpenPdf,
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
                                 text = stringResource(R.string.pdf_view),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = if (isCompact) 12.5.sp else 14.sp,
+                                fontWeight = FontWeight.ExtraBold,
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = TextOverflow.Ellipsis
@@ -2210,12 +2309,19 @@ fun StatementPreviewDialog(
                         FilledTonalButton(
                             onClick = onShare,
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
+                            Icon(
+                                imageVector = Icons.Filled.Share,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = stringResource(R.string.share),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = if (isCompact) 12.5.sp else 14.sp,
+                                fontWeight = FontWeight.ExtraBold,
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = TextOverflow.Ellipsis
@@ -2225,12 +2331,19 @@ fun StatementPreviewDialog(
                         Button(
                             onClick = onSave,
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = stringResource(R.string.save),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = if (isCompact) 12.5.sp else 14.sp,
+                                fontWeight = FontWeight.ExtraBold,
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = TextOverflow.Ellipsis
@@ -2244,17 +2357,17 @@ fun StatementPreviewDialog(
 }
 
 @Composable
-private fun DayHalfHeader(isCompact: Boolean, modifier: Modifier = Modifier) {
+private fun DayHalfHeader(isCompact: Boolean, isDark: Boolean, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.padding(horizontal = 1.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = if (isCompact) "Dt" else stringResource(R.string.date),
-            modifier = Modifier.weight(0.75f),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = if (isCompact) 9.sp else 10.sp),
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.weight(0.7f),
+            fontSize = if (isCompact) 11.5.sp else 13.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color(0xFFF1F5F9),
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false
@@ -2262,9 +2375,9 @@ private fun DayHalfHeader(isCompact: Boolean, modifier: Modifier = Modifier) {
         Text(
             text = if (isCompact) "Morn" else stringResource(R.string.morning),
             modifier = Modifier.weight(1.15f),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = if (isCompact) 9.sp else 10.sp),
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary,
+            fontSize = if (isCompact) 11.5.sp else 13.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = if (isDark) Color(0xFFFDE047) else Color(0xFFFEF08A),
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false
@@ -2272,9 +2385,9 @@ private fun DayHalfHeader(isCompact: Boolean, modifier: Modifier = Modifier) {
         Text(
             text = if (isCompact) "Eve" else stringResource(R.string.evening),
             modifier = Modifier.weight(1.15f),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = if (isCompact) 9.sp else 10.sp),
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary,
+            fontSize = if (isCompact) 11.5.sp else 13.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = if (isDark) Color(0xFFE9D5FF) else Color(0xFFF5D0FE),
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false
@@ -2282,9 +2395,9 @@ private fun DayHalfHeader(isCompact: Boolean, modifier: Modifier = Modifier) {
         Text(
             text = if (isCompact) "Pay" else stringResource(R.string.payment),
             modifier = Modifier.weight(1.15f),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = if (isCompact) 9.sp else 10.sp),
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary,
+            fontSize = if (isCompact) 11.5.sp else 13.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = if (isDark) Color(0xFF86EFAC) else Color(0xFFA7F3D0),
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false
@@ -2297,78 +2410,156 @@ private fun DayHalfRow(
     dayNum: Int?,
     dayItem: DayStatementItem?,
     isCompact: Boolean,
+    isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.padding(vertical = 2.dp, horizontal = 1.dp),
+        modifier = modifier.padding(vertical = 2.5.dp, horizontal = 1.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = dayNum?.let { String.format(Locale.US, "%02d", it) } ?: "-",
-            modifier = Modifier.weight(0.75f),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = if (isCompact) 9.5.sp else 10.sp),
-            fontWeight = FontWeight.Bold,
-            color = if (dayNum != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            softWrap = false
-        )
-        Text(
-            text = if (dayItem != null && (dayItem.mornQty > BigDecimal.ZERO || dayItem.mornAmt > BigDecimal.ZERO)) {
+        Box(
+            modifier = Modifier.weight(0.7f),
+            contentAlignment = Alignment.Center
+        ) {
+            if (dayNum != null) {
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isDark) Color(0xFF334155).copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.padding(vertical = 1.dp)
+                ) {
+                    Text(
+                        text = String.format(Locale.US, "%02d", dayNum),
+                        modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp),
+                        fontSize = if (isCompact) 11.sp else 12.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF1E293B),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+            } else {
+                Text(
+                    text = "-",
+                    fontSize = if (isCompact) 11.sp else 12.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        Box(
+            modifier = Modifier.weight(1.15f),
+            contentAlignment = Alignment.Center
+        ) {
+            if (dayItem != null && (dayItem.mornQty > BigDecimal.ZERO || dayItem.mornAmt > BigDecimal.ZERO)) {
                 val q = dayItem.mornQty.stripTrailingZeros().toPlainString()
                 val a = dayItem.mornAmt.setScale(0, RoundingMode.HALF_UP).toPlainString()
-                "${q}L\n₹$a"
-            } else "-",
-            modifier = Modifier.weight(1.15f),
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontSize = if (isCompact) 8.5.sp else 9.5.sp,
-                lineHeight = if (isCompact) 10.5.sp else 12.sp
-            ),
-            color = if (dayItem != null && (dayItem.mornQty > BigDecimal.ZERO || dayItem.mornAmt > BigDecimal.ZERO)) {
-                MaterialTheme.colorScheme.onSurface
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "${q}L",
+                        fontSize = if (isCompact) 11.sp else 12.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                    Text(
+                        text = "₹$a",
+                        fontSize = if (isCompact) 10.sp else 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
             } else {
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
-            },
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            softWrap = false
-        )
-        Text(
-            text = if (dayItem != null && (dayItem.eveQty > BigDecimal.ZERO || dayItem.eveAmt > BigDecimal.ZERO)) {
+                Text(
+                    text = "-",
+                    fontSize = if (isCompact) 12.sp else 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        Box(
+            modifier = Modifier.weight(1.15f),
+            contentAlignment = Alignment.Center
+        ) {
+            if (dayItem != null && (dayItem.eveQty > BigDecimal.ZERO || dayItem.eveAmt > BigDecimal.ZERO)) {
                 val q = dayItem.eveQty.stripTrailingZeros().toPlainString()
                 val a = dayItem.eveAmt.setScale(0, RoundingMode.HALF_UP).toPlainString()
-                "${q}L\n₹$a"
-            } else "-",
-            modifier = Modifier.weight(1.15f),
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontSize = if (isCompact) 8.5.sp else 9.5.sp,
-                lineHeight = if (isCompact) 10.5.sp else 12.sp
-            ),
-            color = if (dayItem != null && (dayItem.eveQty > BigDecimal.ZERO || dayItem.eveAmt > BigDecimal.ZERO)) {
-                MaterialTheme.colorScheme.onSurface
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "${q}L",
+                        fontSize = if (isCompact) 11.sp else 12.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isDark) Color(0xFFC084FC) else Color(0xFF7C3AED),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                    Text(
+                        text = "₹$a",
+                        fontSize = if (isCompact) 10.sp else 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
             } else {
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
-            },
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            softWrap = false
-        )
-        Text(
-            text = if (dayItem != null && dayItem.paymentAmt > BigDecimal.ZERO) {
+                Text(
+                    text = "-",
+                    fontSize = if (isCompact) 12.sp else 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        Box(
+            modifier = Modifier.weight(1.15f),
+            contentAlignment = Alignment.Center
+        ) {
+            if (dayItem != null && dayItem.paymentAmt > BigDecimal.ZERO) {
                 val p = dayItem.paymentAmt.setScale(0, RoundingMode.HALF_UP).toPlainString()
-                "₹$p"
-            } else "-",
-            modifier = Modifier.weight(1.15f),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = if (isCompact) 8.5.sp else 9.5.sp),
-            fontWeight = if (dayItem != null && dayItem.paymentAmt > BigDecimal.ZERO) FontWeight.Bold else FontWeight.Normal,
-            color = if (dayItem != null && dayItem.paymentAmt > BigDecimal.ZERO) {
-                Color(0xFF10B981)
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isDark) Color(0xFF064E3B).copy(alpha = 0.6f) else Color(0xFFECFDF5),
+                    border = BorderStroke(0.5.dp, if (isDark) Color(0xFF059669).copy(alpha = 0.6f) else Color(0xFFA7F3D0)),
+                    modifier = Modifier.padding(horizontal = 1.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "₹$p",
+                        modifier = Modifier.padding(horizontal = 3.dp, vertical = 2.dp),
+                        fontSize = if (isCompact) 10.5.sp else 12.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isDark) Color(0xFF34D399) else Color(0xFF047857),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
             } else {
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
-            },
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            softWrap = false
-        )
+                Text(
+                    text = "-",
+                    fontSize = if (isCompact) 12.sp else 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
     }
 }

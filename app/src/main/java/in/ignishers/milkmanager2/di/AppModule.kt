@@ -7,6 +7,7 @@ import `in`.ignishers.milkmanager2.database.PaymentRepository
 import `in`.ignishers.milkmanager2.database.AppSettingsRepository
 import `in`.ignishers.milkmanager2.ui.dashboard.DashboardViewModel
 import `in`.ignishers.milkmanager2.ui.pos.PointOfSaleViewModel
+import `in`.ignishers.milkmanager2.ui.sales.SalesAnalyticsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -33,4 +34,5 @@ val appModule = module {
     // ViewModels
     viewModel { DashboardViewModel(get(), get(), get(), get(), get()) }
     viewModel { PointOfSaleViewModel(get(), get(), get(), get()) }
+    viewModel { SalesAnalyticsViewModel(get(), get(), get(), get()) }
 }

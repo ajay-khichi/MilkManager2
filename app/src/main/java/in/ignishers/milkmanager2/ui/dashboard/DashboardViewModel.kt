@@ -78,10 +78,8 @@ class DashboardViewModel(
 
     fun checkPendingAutoEntries(context: Context) {
         launchSafe {
-            val entriesMade = AutoEntryManager.checkAndRunPendingAutoEntries(context)
-            if (entriesMade > 0) {
-                loadMetrics()
-            }
+            AutoEntryManager.checkAndRunPendingAutoEntries(context)
+            loadMetrics()
         }
     }
 

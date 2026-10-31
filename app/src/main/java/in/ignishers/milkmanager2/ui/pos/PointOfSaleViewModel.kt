@@ -10,6 +10,7 @@ import `in`.ignishers.milkmanager2.models.Customer
 import `in`.ignishers.milkmanager2.models.DailyTransaction
 import `in`.ignishers.milkmanager2.models.Payment
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,13 @@ class PointOfSaleViewModel(
     private val milkRateRepository: MilkRateRepository,
     private val paymentRepository: PaymentRepository
 ) : BaseViewModel() {
+
+    companion object {
+        fun determineSessionForTime(): String {
+            val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            return if (hour in 5..15) "Morning" else "Evening"
+        }
+    }
     
     private val _customer = MutableStateFlow<Customer?>(null)
     val customer: StateFlow<Customer?> = _customer
@@ -42,7 +50,9 @@ class PointOfSaleViewModel(
     private val _currentDate = MutableStateFlow(SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()))
     val currentDate: StateFlow<String> = _currentDate
     
-    private val _session = MutableStateFlow("Morning")
+    private var isManualSessionSelected = false
+
+    private val _session = MutableStateFlow(determineSessionForTime())
     val session: StateFlow<String> = _session
     
     private val _quantity = MutableStateFlow(BigDecimal.ZERO)
@@ -71,6 +81,20 @@ class PointOfSaleViewModel(
         val total = cust?.currentDue ?: BigDecimal.ZERO
         total.subtract(bill)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BigDecimal.ZERO)
+
+    init {
+        viewModelScope.launch {
+            while (true) {
+                delay(30_000L)
+                if (!isManualSessionSelected) {
+                    val expected = determineSessionForTime()
+                    if (_session.value != expected) {
+                        setSession(expected, isManual = false)
+                    }
+                }
+            }
+        }
+    }
     
     fun loadCustomer(customerId: Long) {
         customerFlowJob?.cancel()
@@ -79,6 +103,9 @@ class PointOfSaleViewModel(
             _customer.value = cust
             val rate = milkRateRepository.getLatestRate()?.price ?: BigDecimal("60.0")
             _milkRate.value = rate
+            if (!isManualSessionSelected) {
+                _session.value = determineSessionForTime()
+            }
             _quantity.value = if (_session.value == "Morning") cust?.defaultQtyMorning ?: BigDecimal.ZERO else cust?.defaultQtyEvening ?: BigDecimal.ZERO
             calculateAmount()
 
@@ -164,7 +191,10 @@ class PointOfSaleViewModel(
         }
     }
     
-    fun setSession(newSession: String) {
+    fun setSession(newSession: String, isManual: Boolean = true) {
+        if (isManual) {
+            isManualSessionSelected = true
+        }
         _session.value = newSession
         val cust = _customer.value
         if (cust != null) {
@@ -234,6 +264,11 @@ class PointOfSaleViewModel(
                 }
                 "1l" -> {
                     val q = BigDecimal("1.00")
+                    val a = q.multiply(rate).setScale(2, RoundingMode.HALF_UP)
+                    q to a
+                }
+                "2l" -> {
+                    val q = BigDecimal("2.00")
                     val a = q.multiply(rate).setScale(2, RoundingMode.HALF_UP)
                     q to a
                 }

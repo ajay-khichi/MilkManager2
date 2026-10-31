@@ -3,15 +3,24 @@ package `in`.ignishers.milkmanager2.ui.dashboard
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Edit
@@ -44,6 +53,7 @@ import `in`.ignishers.milkmanager2.R
 import `in`.ignishers.milkmanager2.models.Customer
 import `in`.ignishers.milkmanager2.models.RouteGroup
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +63,8 @@ fun DashboardScreen(
     onNavigateBack: () -> Unit,
     onNavigateToPos: (Long) -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToSalesAnalytics: () -> Unit = {},
+    onNavigateToRoot: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
@@ -92,6 +104,27 @@ fun DashboardScreen(
     }
     val defaultAppName = stringResource(R.string.app_name)
     val currentRouteName = allRouteGroups.find { it.id == currentRouteId }?.name ?: defaultAppName
+
+    val breadcrumbTrail = remember(allRouteGroups, currentRouteId) {
+        if (currentRouteId == null) {
+            emptyList<RouteGroup>()
+        } else {
+            val trail = mutableListOf<RouteGroup>()
+            var currId: Long? = currentRouteId
+            val visited = mutableSetOf<Long>()
+            while (currId != null && currId > 0L && !visited.contains(currId)) {
+                visited.add(currId)
+                val group = allRouteGroups.find { it.id == currId }
+                if (group != null) {
+                    trail.add(0, group)
+                    currId = group.parentId
+                } else {
+                    break
+                }
+            }
+            trail
+        }
+    }
 
     val currentMilkRate by viewModel.currentMilkRate.collectAsState()
 
@@ -278,7 +311,45 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(currentRouteName, fontWeight = FontWeight.Bold) },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(enabled = currentRouteId != null) {
+                                onNavigateToRoot()
+                            }
+                            .padding(vertical = 4.dp, horizontal = if (currentRouteId != null) 6.dp else 0.dp)
+                            .then(
+                                if (currentRouteId != null) Modifier.background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                                else Modifier
+                            )
+                    ) {
+                        Text(
+                            text = currentRouteName,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (currentRouteId != null) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Home,
+                                        contentDescription = "Tap to jump to Dashboard",
+                                        modifier = Modifier.size(12.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
                 navigationIcon = {
                     if (currentRouteId != null) {
                         IconButton(onClick = onNavigateBack) {
@@ -338,8 +409,8 @@ fun DashboardScreen(
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.sales_records)) },
                                 onClick = { 
-                                    Toast.makeText(context, context.getString(R.string.sales_records_coming_soon), Toast.LENGTH_SHORT).show()
                                     showMenu = false 
+                                    onNavigateToSalesAnalytics()
                                 },
                                 leadingIcon = { Icon(Icons.Filled.List, contentDescription = null) }
                             )
@@ -458,12 +529,93 @@ fun DashboardScreen(
         ) {
             val configuration = LocalConfiguration.current
             val isCompact = configuration.screenWidthDp < 360
+
+            // Breadcrumb Address Navigation (Visible when inside a route / depth)
+            if (currentRouteId != null && breadcrumbTrail.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                ) {
+                    val breadcrumbScrollState = rememberScrollState()
+                    LaunchedEffect(currentRouteId) {
+                        breadcrumbScrollState.animateScrollTo(breadcrumbScrollState.maxValue)
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(breadcrumbScrollState)
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Home icon & label
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { onNavigateToRoot() }
+                                .padding(horizontal = 6.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Home,
+                                contentDescription = "Home",
+                                modifier = Modifier.size(15.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Home",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+
+                        breadcrumbTrail.forEachIndexed { index, route ->
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+
+                            val isLast = index == breadcrumbTrail.size - 1
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isLast) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        if (isLast) {
+                                            onNavigateToRoot()
+                                        } else {
+                                            onNavigateToRoute(route.id ?: 0L)
+                                        }
+                                    }
+                            ) {
+                                Text(
+                                    text = route.name ?: "Route #${route.id}",
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = if (isLast) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isLast) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             
             if (currentRouteId == null) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = if (isCompact) 12.dp else 16.dp, vertical = 8.dp),
+                        .padding(horizontal = if (isCompact) 12.dp else 16.dp, vertical = 8.dp)
+                        .clickable { onNavigateToSalesAnalytics() },
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {
                     Column(modifier = Modifier.padding(if (isCompact) 12.dp else 16.dp)) {
@@ -473,11 +625,18 @@ fun DashboardScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(stringResource(R.string.total_milk), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.labelLarge)
-                                Text("${totalMilk.toPlainString()} L", color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = if (isCompact) 18.sp else 22.sp, fontWeight = FontWeight.Bold)
+                                Text("${totalMilk.toPlainString()} L", color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = if (isCompact) 18.sp else 22.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            }
+                            val formattedRevenue = remember(totalRevenue) {
+                                if (totalRevenue.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) == 0) {
+                                    totalRevenue.setScale(0, RoundingMode.HALF_UP).toPlainString()
+                                } else {
+                                    totalRevenue.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                                }
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(stringResource(R.string.revenue), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.labelLarge)
-                                Text("₹${totalRevenue.toPlainString()}", color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = if (isCompact) 18.sp else 22.sp, fontWeight = FontWeight.Bold)
+                                Text("₹$formattedRevenue", color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = if (isCompact) 18.sp else 22.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                             }
                         }
                         HorizontalDivider(
@@ -506,6 +665,19 @@ fun DashboardScreen(
                                     color = if (isAutoEntryMasterEnabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "View Sales & Analytics →",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         }
                     }
                 }

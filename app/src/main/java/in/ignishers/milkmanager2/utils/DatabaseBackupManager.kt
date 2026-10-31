@@ -342,6 +342,99 @@ class DatabaseBackupManager(
         }
     }
 
+    suspend fun exportFullDatabaseToFile(file: java.io.File): Result<BackupStats> = withContext(Dispatchers.IO) {
+        try {
+            val stats = BackupStats()
+            val routes = db.routeGroupDao().getAllRouteGroupsList()
+            val customers = db.customerDao().getAllCustomersList()
+            val transactions = db.dailyTransactionDao().getAllTransactionsList()
+            val payments = db.paymentDao().getAllPaymentsList()
+            val rates = db.milkRateDao().getAllRatesList()
+            val settings = db.appSettingsDao().getAllSettingsList()
+
+            stats.routesCount = routes.size
+            stats.customersCount = customers.size
+            stats.transactionsCount = transactions.size
+            stats.paymentsCount = payments.size
+            stats.ratesCount = rates.size
+            stats.settingsCount = settings.size
+
+            val backup = DatabaseBackupJson(
+                version = 1,
+                app = "MilkManager2",
+                exportTimestamp = System.currentTimeMillis(),
+                routes = routes,
+                customers = customers,
+                transactions = transactions,
+                payments = payments,
+                rates = rates,
+                settings = settings
+            )
+
+            file.outputStream().use { outStream ->
+                BufferedWriter(OutputStreamWriter(outStream, StandardCharsets.UTF_8), 32768).use { writer ->
+                    gson.toJson(backup, writer)
+                }
+            }
+            Result.success(stats)
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun importFullDatabaseFromFile(file: java.io.File): Result<BackupStats> = withContext(Dispatchers.IO) {
+        try {
+            val stats = BackupStats()
+            val backup: DatabaseBackupJson = BufferedReader(
+                InputStreamReader(file.inputStream(), StandardCharsets.UTF_8), 32768
+            ).use { reader ->
+                gson.fromJson(reader, object : TypeToken<DatabaseBackupJson>() {}.type)
+            }
+
+            db.runInTransaction {
+                if (backup.routes.isNotEmpty()) {
+                    backup.routes.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.routeGroupDao().insertAll(chunk) }
+                    }
+                    stats.routesCount = backup.routes.size
+                }
+                if (backup.customers.isNotEmpty()) {
+                    backup.customers.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.customerDao().insertAll(chunk) }
+                    }
+                    stats.customersCount = backup.customers.size
+                }
+                if (backup.transactions.isNotEmpty()) {
+                    backup.transactions.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.dailyTransactionDao().insertAll(chunk) }
+                    }
+                    stats.transactionsCount = backup.transactions.size
+                }
+                if (backup.payments.isNotEmpty()) {
+                    backup.payments.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.paymentDao().insertAll(chunk) }
+                    }
+                    stats.paymentsCount = backup.payments.size
+                }
+                if (backup.rates.isNotEmpty()) {
+                    backup.rates.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.milkRateDao().insertAll(chunk) }
+                    }
+                    stats.ratesCount = backup.rates.size
+                }
+                if (backup.settings.isNotEmpty()) {
+                    backup.settings.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.appSettingsDao().insertAll(chunk) }
+                    }
+                    stats.settingsCount = backup.settings.size
+                }
+            }
+            Result.success(stats)
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun importFullDatabaseFromJson(uri: Uri): Result<BackupStats> = withContext(Dispatchers.IO) {
         try {
             val stats = BackupStats()

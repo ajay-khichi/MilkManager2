@@ -103,4 +103,16 @@ interface DailyTransactionRoomDao {
 
     @Query("SELECT CAST(strftime('%Y', transaction_date) as INTEGER) as year, SUM(transaction_quantity) as totalMilk, SUM(transaction_amount) as totalRevenue FROM milk_transaction WHERE transaction_session NOT LIKE 'Payment%' AND strftime('%Y', transaction_date) >= :startYear GROUP BY year ORDER BY year")
     suspend fun getYearlyRevenueTrend(startYear: String): List<YearlyReportItem>
+
+    @Query("SELECT SUM(transaction_quantity) FROM milk_transaction WHERE transaction_session NOT LIKE 'Payment%' AND transaction_date >= :startDate AND transaction_date <= :endDate")
+    suspend fun getTotalMilkDateRange(startDate: String, endDate: String): BigDecimal?
+
+    @Query("SELECT SUM(transaction_amount) FROM milk_transaction WHERE transaction_session NOT LIKE 'Payment%' AND transaction_date >= :startDate AND transaction_date <= :endDate")
+    suspend fun getTotalRevenueDateRange(startDate: String, endDate: String): BigDecimal?
+
+    @Query("SELECT * FROM milk_transaction WHERE transaction_session NOT LIKE 'Payment%' AND transaction_date >= :startDate AND transaction_date <= :endDate ORDER BY transaction_date ASC, transaction_id ASC")
+    suspend fun getTransactionsDateRange(startDate: String, endDate: String): List<DailyTransaction>
+
+    @Query("SELECT * FROM milk_transaction WHERE transaction_session NOT LIKE 'Payment%' ORDER BY transaction_date ASC, transaction_id ASC")
+    suspend fun getAllMilkTransactions(): List<DailyTransaction>
 }

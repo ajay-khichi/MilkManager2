@@ -27,12 +27,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import `in`.ignishers.milkmanager2.BuildConfig
 import `in`.ignishers.milkmanager2.R
 import `in`.ignishers.milkmanager2.database.AppDatabase
 import `in`.ignishers.milkmanager2.database.AppSettingsRepository
+import `in`.ignishers.milkmanager2.drive.DriveBackupItem
+import `in`.ignishers.milkmanager2.drive.GoogleDriveManager
 import `in`.ignishers.milkmanager2.scheduler.AutoEntryManager
 import `in`.ignishers.milkmanager2.utils.DatabaseBackupManager
 import `in`.ignishers.milkmanager2.utils.LocaleHelper
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.text.SimpleDateFormat
@@ -51,6 +56,25 @@ fun SettingsScreen(onBack: () -> Unit) {
     var selectedLangCode by remember { mutableStateOf(LocaleHelper.getSelectedLanguageCode()) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
+
+    var googleAccount by remember { mutableStateOf(GoogleDriveManager.getSignedInAccount(context)) }
+    var isDriveLoading by remember { mutableStateOf(false) }
+    var driveLoadingMessage by remember { mutableStateOf("") }
+    var driveBackupsList by remember { mutableStateOf<List<DriveBackupItem>?>(null) }
+    var showDriveRestoreDialog by remember { mutableStateOf(false) }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            googleAccount = account
+            Toast.makeText(context, context.getString(R.string.connected_as, account.email ?: ""), Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Sign-in error: ${e.localizedMessage ?: e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
 
     fun getTimeStamp() = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
 
@@ -326,6 +350,191 @@ fun SettingsScreen(onBack: () -> Unit) {
                 }
             }
 
+            // Google Drive Cloud Backup Card (Free Tier)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_google_drive),
+                            contentDescription = "Google Drive",
+                            modifier = Modifier.size(28.dp),
+                            tint = androidx.compose.ui.graphics.Color.Unspecified
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.google_drive_backup),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = stringResource(R.string.google_drive_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    if (googleAccount == null) {
+                        Button(
+                            onClick = {
+                                val client = GoogleDriveManager.getSignInClient(context)
+                                googleSignInLauncher.launch(client.signInIntent)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_google_drive),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = androidx.compose.ui.graphics.Color.Unspecified
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.sign_in_google))
+                        }
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Google Account",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = googleAccount?.email ?: "Connected",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                                TextButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            GoogleDriveManager.signOut(context)
+                                            googleAccount = null
+                                            Toast.makeText(context, "Disconnected from Google Drive", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.disconnect_account),
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                            }
+                        }
+
+                        if (isDriveLoading) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                                Text(
+                                    text = driveLoadingMessage,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        googleAccount?.let { account ->
+                                            isDriveLoading = true
+                                            driveLoadingMessage = context.getString(R.string.drive_backup_in_progress)
+                                            coroutineScope.launch {
+                                                val res = GoogleDriveManager.uploadBackup(context, account)
+                                                isDriveLoading = false
+                                                if (res.isSuccess) {
+                                                    val item = res.getOrNull()
+                                                    Toast.makeText(
+                                                        context,
+                                                        context.getString(R.string.drive_backup_success, item?.name ?: ""),
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                } else {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Backup failed: ${res.exceptionOrNull()?.message}",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text(stringResource(R.string.backup_to_drive_now), maxLines = 1)
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        googleAccount?.let { account ->
+                                            isDriveLoading = true
+                                            driveLoadingMessage = "Loading backups from Google Drive..."
+                                            coroutineScope.launch {
+                                                val res = GoogleDriveManager.listBackups(context, account)
+                                                isDriveLoading = false
+                                                if (res.isSuccess) {
+                                                    val list = res.getOrNull() ?: emptyList()
+                                                    if (list.isEmpty()) {
+                                                        Toast.makeText(
+                                                            context,
+                                                            context.getString(R.string.no_backups_found_on_drive),
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    } else {
+                                                        driveBackupsList = list
+                                                        showDriveRestoreDialog = true
+                                                    }
+                                                } else {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Failed: ${res.exceptionOrNull()?.message}",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text(stringResource(R.string.restore_from_drive), maxLines = 1)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // About Ignishers Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -416,6 +625,14 @@ fun SettingsScreen(onBack: () -> Unit) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(stringResource(R.string.visit_website), fontWeight = FontWeight.Bold)
                     }
+
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "MilkManager v${BuildConfig.VERSION_NAME} • Kotlin & Jetpack Compose",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
                 }
             }
         }
@@ -644,6 +861,100 @@ fun SettingsScreen(onBack: () -> Unit) {
                 confirmButton = {},
                 dismissButton = {
                     TextButton(onClick = { showExportDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        // Google Drive Restore Dialog
+        if (showDriveRestoreDialog && driveBackupsList != null) {
+            AlertDialog(
+                onDismissRequest = { showDriveRestoreDialog = false },
+                title = {
+                    Text(
+                        text = stringResource(R.string.select_backup_to_restore),
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 320.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(driveBackupsList!!) { item ->
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        googleAccount?.let { account ->
+                                            showDriveRestoreDialog = false
+                                            isDriveLoading = true
+                                            driveLoadingMessage = context.getString(R.string.drive_restore_in_progress)
+                                            coroutineScope.launch {
+                                                val res = GoogleDriveManager.restoreBackup(context, account, item.id)
+                                                isDriveLoading = false
+                                                if (res.isSuccess) {
+                                                    val stats = res.getOrNull()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Restore complete: ${stats?.summary() ?: ""}",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                } else {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Restore failed: ${res.exceptionOrNull()?.message}",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                }
+                                            }
+                                        }
+                                    }
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = item.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        val dateStr = if (item.modifiedTimeMillis > 0) {
+                                            SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+                                                .format(Date(item.modifiedTimeMillis))
+                                        } else {
+                                            "Unknown date"
+                                        }
+                                        Text(
+                                            text = dateStr,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "${(item.sizeBytes / 1024).coerceAtLeast(1)} KB",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showDriveRestoreDialog = false }) {
                         Text(stringResource(R.string.cancel))
                     }
                 }

@@ -43,4 +43,10 @@ interface CustomerRoomDao {
 
     @Query("DELETE FROM customer WHERE customer_id = :id")
     suspend fun delete(id: Long): Int
+
+    @Query("SELECT SUM(customer_due_balance) FROM customer")
+    suspend fun getTotalOutstandingDue(): java.math.BigDecimal?
+
+    @Query("SELECT * FROM customer WHERE customer_due_balance > 0 ORDER BY customer_due_balance DESC LIMIT :limit")
+    suspend fun getTopDueCustomers(limit: Int): List<Customer>
 }

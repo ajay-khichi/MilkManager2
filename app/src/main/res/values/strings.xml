@@ -187,4 +187,18 @@
     <string name="auto_entry_notification_body">%1$d customers updated • %2$s L (₹%3$s)</string>
     <string name="auto_entry_notification_up_to_date">%1$s entries are up to date</string>
     <string name="test_notification">Test Entry Notification</string>
+
+    <!-- Google Drive Backup -->
+    <string name="google_drive_backup">Google Drive Backup (Free)</string>
+    <string name="google_drive_desc">Securely backup your dairy data to your personal Google Drive for free.</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="disconnect_account">Disconnect</string>
+    <string name="backup_to_drive_now">Backup to Drive Now</string>
+    <string name="restore_from_drive">Restore from Drive</string>
+    <string name="drive_backup_in_progress">Backing up to Google Drive…</string>
+    <string name="drive_restore_in_progress">Restoring from Google Drive…</string>
+    <string name="drive_backup_success">Backup saved to Google Drive: %1$s</string>
+    <string name="select_backup_to_restore">Select Backup to Restore</string>
+    <string name="no_backups_found_on_drive">No backups found on Google Drive</string>
+    <string name="connected_as">Connected: %1$s</string>
 </resources>
