@@ -1273,22 +1273,40 @@ BillActivity
 
 ### Google Drive Backup Flow
 ```
-SettingsActivity
+SettingsActivity / SettingsScreen
     |
     |-- GoogleSignIn.getClient().signIn()
     |       +-> onActivityResult -> GoogleSignInAccount
     |
-    |-- GoogleDriveHelper.buildDriveService(context, account)
+    |-- GoogleDriveManager.getDriveService(context, account)
     |
-    +-- GoogleDriveHelper.backup(context, driveService, callback)
-            +-> [Background Thread]
-                    |-- context.getDatabasePath("milky_mist_db")
-                    |-- getOrCreateFolder() -> folderId
-                    |-- findFile() -> delete old backup if exists
-                    |-- driveService.files().create(metadata, content).execute()
-                    +-- callback.onSuccess(message)
+    +-- GoogleDriveManager.uploadBackup(context, account)
+            +-> [Background Coroutine]
+                    |-- DatabaseBackupManager.exportFullDatabaseToFile(tempFile)
+                    |-- getOrCreateFolderId() -> 'MilkManager2_Backups'
+                    |-- driveService.files().create(metadata, mediaContent).execute()
+                    +-- Cleanup temp file & Toast success
 ```
 
 ---
 
-*Document generated: 2026-04-22 | MilkManager2 v2.0 | Schema v6*
+## 15. Milk Purchase (Procurement) Module (v3.1.0)
+
+Designed for tracking milk collection/procurement from farmers and vendors.
+
+### 15.1 Architecture
+* **Entities:**
+  * [`Supplier`](file:///home/point-break/dev/android/MilkManager2/app/src/main/java/in/ignishers/milkmanager2/models/Supplier.kt): Vendor name, phone, default rate per litre, active status, sort order.
+  * [`MilkPurchase`](file:///home/point-break/dev/android/MilkManager2/app/src/main/java/in/ignishers/milkmanager2/models/MilkPurchase.kt): Daily procurement record with date, session (Morning/Evening), quantity in Litres, price per litre, total amount, and payment status (`is_paid`).
+* **DAOs:**
+  * [`SupplierRoomDao`](file:///home/point-break/dev/android/MilkManager2/app/src/main/java/in/ignishers/milkmanager2/database/SupplierRoomDao.kt): CRUD and active vendor filtering.
+  * [`MilkPurchaseRoomDao`](file:///home/point-break/dev/android/MilkManager2/app/src/main/java/in/ignishers/milkmanager2/database/MilkPurchaseRoomDao.kt): Daily session queries, monthly aggregates, and paid/unpaid status updating.
+* **UI & ViewModel:**
+  * [`PurchaseScreen.kt`](file:///home/point-break/dev/android/MilkManager2/app/src/main/java/in/ignishers/milkmanager2/ui/purchase/PurchaseScreen.kt):
+    * Tab 0: **Daily Entry (दैनिक एंट्री)**: Date switcher, Morning/Evening session toggle, quick litre chips (+10L, +20L, +30L, +50L), instant save per vendor.
+    * Tab 1: **Monthly Summary (मासिक विवरण)**: Month-wise breakdown, total litres, Morning/Evening split, calculated amount, and one-tap Paid/Unpaid status toggle (`is_paid`).
+  * Access Point: Dashboard TopAppBar overflow menu (`DropdownMenu` -> "Milk Purchase (दूध खरीद)").
+
+---
+
+*Document updated: 2026-10-31 | MilkManager2 v3.1.0 | Room Schema v3*

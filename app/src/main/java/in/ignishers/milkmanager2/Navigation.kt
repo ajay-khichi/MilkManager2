@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import `in`.ignishers.milkmanager2.ui.dashboard.DashboardScreen
 import `in`.ignishers.milkmanager2.ui.pos.PointOfSaleScreen
+import `in`.ignishers.milkmanager2.ui.purchase.PurchaseScreen
 import `in`.ignishers.milkmanager2.ui.sales.SalesAnalyticsScreen
 import `in`.ignishers.milkmanager2.ui.settings.SettingsScreen
 
@@ -32,6 +33,9 @@ fun AppNavigation() {
                 },
                 onNavigateToSalesAnalytics = {
                     navController.navigate("sales_analytics")
+                },
+                onNavigateToPurchase = {
+                    navController.navigate("purchase")
                 }
             )
         }
@@ -63,6 +67,9 @@ fun AppNavigation() {
                 },
                 onNavigateToSalesAnalytics = {
                     navController.navigate("sales_analytics")
+                },
+                onNavigateToPurchase = {
+                    navController.navigate("purchase")
                 }
             )
         }
@@ -86,6 +93,12 @@ fun AppNavigation() {
 
         composable("sales_analytics") {
             SalesAnalyticsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("purchase") {
+            PurchaseScreen(
                 onBack = { navController.popBackStack() }
             )
         }

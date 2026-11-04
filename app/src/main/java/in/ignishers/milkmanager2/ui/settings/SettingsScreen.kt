@@ -152,6 +152,38 @@ fun SettingsScreen(onBack: () -> Unit) {
         }
     }
 
+    // 5. Export Suppliers Only CSV
+    val exportSuppliersLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri: Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                val result = backupManager.exportSuppliersToCsv(it)
+                if (result.isSuccess) {
+                    Toast.makeText(context, context.getString(R.string.export_success), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, context.getString(R.string.export_failed), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    // 6. Export Milk Purchases Only CSV
+    val exportPurchasesLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri: Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                val result = backupManager.exportPurchasesToCsv(it)
+                if (result.isSuccess) {
+                    Toast.makeText(context, context.getString(R.string.export_success), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, context.getString(R.string.export_failed), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     // 5. Universal Smart Import (ZIP with CSVs, JSON Backup, or single CSV)
     val importUniversalLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -852,6 +884,46 @@ fun SettingsScreen(onBack: () -> Unit) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
                                     text = stringResource(R.string.export_transactions_csv),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        // 5. Suppliers Only CSV
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showExportDialog = false
+                                    exportSuppliersLauncher.launch("suppliers_export.csv")
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.export_suppliers_csv),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        // 6. Milk Purchases Only CSV
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showExportDialog = false
+                                    exportPurchasesLauncher.launch("milk_purchases_export.csv")
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.export_purchases_csv),
                                     fontWeight = FontWeight.Bold
                                 )
                             }

@@ -64,6 +64,7 @@ fun DashboardScreen(
     onNavigateToPos: (Long) -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToSalesAnalytics: () -> Unit = {},
+    onNavigateToPurchase: () -> Unit = {},
     onNavigateToRoot: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel()
 ) {
@@ -413,6 +414,14 @@ fun DashboardScreen(
                                     onNavigateToSalesAnalytics()
                                 },
                                 leadingIcon = { Icon(Icons.Filled.List, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.milk_purchase_procurement)) },
+                                onClick = { 
+                                    showMenu = false 
+                                    onNavigateToPurchase()
+                                },
+                                leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) }
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.settings)) },

@@ -9,9 +9,11 @@ import `in`.ignishers.milkmanager2.database.AppDatabase
 import `in`.ignishers.milkmanager2.models.AppSetting
 import `in`.ignishers.milkmanager2.models.Customer
 import `in`.ignishers.milkmanager2.models.DailyTransaction
+import `in`.ignishers.milkmanager2.models.MilkPurchase
 import `in`.ignishers.milkmanager2.models.MilkRate
 import `in`.ignishers.milkmanager2.models.Payment
 import `in`.ignishers.milkmanager2.models.RouteGroup
+import `in`.ignishers.milkmanager2.models.Supplier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -31,7 +33,9 @@ data class BackupStats(
     var transactionsCount: Int = 0,
     var paymentsCount: Int = 0,
     var ratesCount: Int = 0,
-    var settingsCount: Int = 0
+    var settingsCount: Int = 0,
+    var suppliersCount: Int = 0,
+    var purchasesCount: Int = 0
 ) {
     fun summary(): String {
         val parts = mutableListOf<String>()
@@ -41,6 +45,8 @@ data class BackupStats(
         if (paymentsCount > 0) parts.add("$paymentsCount payments")
         if (ratesCount > 0) parts.add("$ratesCount rates")
         if (settingsCount > 0) parts.add("$settingsCount settings")
+        if (suppliersCount > 0) parts.add("$suppliersCount suppliers")
+        if (purchasesCount > 0) parts.add("$purchasesCount purchases")
         return if (parts.isEmpty()) "0 records" else parts.joinToString(", ")
     }
 }
@@ -54,7 +60,9 @@ data class DatabaseBackupJson(
     val transactions: List<DailyTransaction> = emptyList(),
     val payments: List<Payment> = emptyList(),
     val rates: List<MilkRate> = emptyList(),
-    val settings: List<AppSetting> = emptyList()
+    val settings: List<AppSetting> = emptyList(),
+    val suppliers: List<Supplier> = emptyList(),
+    val purchases: List<MilkPurchase> = emptyList()
 )
 
 class DatabaseBackupManager(
@@ -197,6 +205,53 @@ class DatabaseBackupManager(
                     }
                     writer.flush()
                     zos.closeEntry()
+
+                    // 7. Suppliers
+                    val suppliers = db.supplierDao().getAllSuppliersList()
+                    stats.suppliersCount = suppliers.size
+                    zos.putNextEntry(ZipEntry("supplier.csv"))
+                    writer.write("supplier_id,supplier_name,supplier_mobile,supplier_address,default_rate,is_active,sort_order,is_synced,updated_at,created_at\n")
+                    for (sp in suppliers) {
+                        writer.write(
+                            "${sp.id}," +
+                            "${escapeCsv(sp.name)}," +
+                            "${escapeCsv(sp.mobile)}," +
+                            "${escapeCsv(sp.address)}," +
+                            "${sp.defaultRate}," +
+                            "${sp.isActive}," +
+                            "${sp.sortOrder}," +
+                            "${sp.isSynced}," +
+                            "${sp.updatedAt}," +
+                            "${sp.createdAt}\n"
+                        )
+                    }
+                    writer.flush()
+                    zos.closeEntry()
+
+                    // 8. Milk Purchases
+                    val purchases = db.milkPurchaseDao().getPurchasesForMonthList("")
+                    stats.purchasesCount = purchases.size
+                    zos.putNextEntry(ZipEntry("milk_purchase.csv"))
+                    writer.write("purchase_id,supplier_id_fk,purchase_date,purchase_session,quantity,price_per_litre,total_amount,is_paid,payment_date,notes,is_synced,updated_at,created_at\n")
+                    for (mp in purchases) {
+                        writer.write(
+                            "${mp.id}," +
+                            "${mp.supplierId}," +
+                            "${escapeCsv(mp.purchaseDate)}," +
+                            "${escapeCsv(mp.session)}," +
+                            "${mp.quantity}," +
+                            "${mp.pricePerLitre}," +
+                            "${mp.totalAmount}," +
+                            "${mp.isPaid}," +
+                            "${escapeCsv(mp.paymentDate)}," +
+                            "${escapeCsv(mp.notes)}," +
+                            "${mp.isSynced}," +
+                            "${mp.updatedAt}," +
+                            "${mp.createdAt}\n"
+                        )
+                    }
+                    writer.flush()
+                    zos.closeEntry()
                 }
             }
             Result.success(stats)
@@ -221,6 +276,8 @@ class DatabaseBackupManager(
             val paymentList = mutableListOf<Payment>()
             val rateList = mutableListOf<MilkRate>()
             val settingList = mutableListOf<AppSetting>()
+            val supplierList = mutableListOf<Supplier>()
+            val purchaseList = mutableListOf<MilkPurchase>()
 
             ZipInputStream(rawIn.buffered(32768)).use { zis ->
                 var entry = zis.nextEntry
@@ -246,6 +303,12 @@ class DatabaseBackupManager(
                         }
                         entryName == "app_settings.csv" -> {
                             parseAppSettingsCsv(reader, settingList)
+                        }
+                        entryName == "supplier.csv" -> {
+                            parseSupplierCsv(reader, supplierList)
+                        }
+                        entryName == "milk_purchase.csv" -> {
+                            parseMilkPurchaseCsv(reader, purchaseList)
                         }
                     }
                     zis.closeEntry()
@@ -291,6 +354,18 @@ class DatabaseBackupManager(
                     }
                     stats.settingsCount = settingList.size
                 }
+                if (supplierList.isNotEmpty()) {
+                    supplierList.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.supplierDao().insertAll(chunk) }
+                    }
+                    stats.suppliersCount = supplierList.size
+                }
+                if (purchaseList.isNotEmpty()) {
+                    purchaseList.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.milkPurchaseDao().insertAll(chunk) }
+                    }
+                    stats.purchasesCount = purchaseList.size
+                }
             }
 
             Result.success(stats)
@@ -311,6 +386,8 @@ class DatabaseBackupManager(
             val payments = db.paymentDao().getAllPaymentsList()
             val rates = db.milkRateDao().getAllRatesList()
             val settings = db.appSettingsDao().getAllSettingsList()
+            val suppliers = db.supplierDao().getAllSuppliersList()
+            val purchases = db.milkPurchaseDao().getPurchasesForMonthList("") // empty string matches all
 
             stats.routesCount = routes.size
             stats.customersCount = customers.size
@@ -318,6 +395,8 @@ class DatabaseBackupManager(
             stats.paymentsCount = payments.size
             stats.ratesCount = rates.size
             stats.settingsCount = settings.size
+            stats.suppliersCount = suppliers.size
+            stats.purchasesCount = purchases.size
 
             val backup = DatabaseBackupJson(
                 version = 1,
@@ -328,7 +407,9 @@ class DatabaseBackupManager(
                 transactions = transactions,
                 payments = payments,
                 rates = rates,
-                settings = settings
+                settings = settings,
+                suppliers = suppliers,
+                purchases = purchases
             )
 
             context.contentResolver.openOutputStream(uri)?.use { outStream ->
@@ -351,6 +432,8 @@ class DatabaseBackupManager(
             val payments = db.paymentDao().getAllPaymentsList()
             val rates = db.milkRateDao().getAllRatesList()
             val settings = db.appSettingsDao().getAllSettingsList()
+            val suppliers = db.supplierDao().getAllSuppliersList()
+            val purchases = db.milkPurchaseDao().getPurchasesForMonthList("") // empty string matches all
 
             stats.routesCount = routes.size
             stats.customersCount = customers.size
@@ -358,6 +441,8 @@ class DatabaseBackupManager(
             stats.paymentsCount = payments.size
             stats.ratesCount = rates.size
             stats.settingsCount = settings.size
+            stats.suppliersCount = suppliers.size
+            stats.purchasesCount = purchases.size
 
             val backup = DatabaseBackupJson(
                 version = 1,
@@ -368,7 +453,9 @@ class DatabaseBackupManager(
                 transactions = transactions,
                 payments = payments,
                 rates = rates,
-                settings = settings
+                settings = settings,
+                suppliers = suppliers,
+                purchases = purchases
             )
 
             file.outputStream().use { outStream ->
@@ -428,6 +515,18 @@ class DatabaseBackupManager(
                     }
                     stats.settingsCount = backup.settings.size
                 }
+                if (backup.suppliers.isNotEmpty()) {
+                    backup.suppliers.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.supplierDao().insertAll(chunk) }
+                    }
+                    stats.suppliersCount = backup.suppliers.size
+                }
+                if (backup.purchases.isNotEmpty()) {
+                    backup.purchases.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.milkPurchaseDao().insertAll(chunk) }
+                    }
+                    stats.purchasesCount = backup.purchases.size
+                }
             }
             Result.success(stats)
         } catch (e: Throwable) {
@@ -483,6 +582,18 @@ class DatabaseBackupManager(
                         kotlinx.coroutines.runBlocking { db.appSettingsDao().insertAll(chunk) }
                     }
                     stats.settingsCount = backup.settings.size
+                }
+                if (backup.suppliers.isNotEmpty()) {
+                    backup.suppliers.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.supplierDao().insertAll(chunk) }
+                    }
+                    stats.suppliersCount = backup.suppliers.size
+                }
+                if (backup.purchases.isNotEmpty()) {
+                    backup.purchases.chunked(500).forEach { chunk ->
+                        kotlinx.coroutines.runBlocking { db.milkPurchaseDao().insertAll(chunk) }
+                    }
+                    stats.purchasesCount = backup.purchases.size
                 }
             }
             Result.success(stats)
@@ -551,6 +662,65 @@ class DatabaseBackupManager(
                 }
             }
             Result.success(transactions.size)
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun exportSuppliersToCsv(uri: Uri): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val suppliers = db.supplierDao().getAllSuppliersList()
+            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                BufferedWriter(OutputStreamWriter(outputStream, StandardCharsets.UTF_8), 16384).use { writer ->
+                    writer.write("supplier_id,supplier_name,supplier_mobile,supplier_address,default_rate,is_active,sort_order,is_synced,updated_at,created_at\n")
+                    for (sp in suppliers) {
+                        writer.write(
+                            "${sp.id}," +
+                            "${escapeCsv(sp.name)}," +
+                            "${escapeCsv(sp.mobile)}," +
+                            "${escapeCsv(sp.address)}," +
+                            "${sp.defaultRate}," +
+                            "${sp.isActive}," +
+                            "${sp.sortOrder}," +
+                            "${sp.isSynced}," +
+                            "${sp.updatedAt}," +
+                            "${sp.createdAt}\n"
+                        )
+                    }
+                }
+            }
+            Result.success(suppliers.size)
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun exportPurchasesToCsv(uri: Uri): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val purchases = db.milkPurchaseDao().getPurchasesForMonthList("")
+            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                BufferedWriter(OutputStreamWriter(outputStream, StandardCharsets.UTF_8), 16384).use { writer ->
+                    writer.write("purchase_id,supplier_id_fk,purchase_date,purchase_session,quantity,price_per_litre,total_amount,is_paid,payment_date,notes,is_synced,updated_at,created_at\n")
+                    for (mp in purchases) {
+                        writer.write(
+                            "${mp.id}," +
+                            "${mp.supplierId}," +
+                            "${escapeCsv(mp.purchaseDate)}," +
+                            "${escapeCsv(mp.session)}," +
+                            "${mp.quantity}," +
+                            "${mp.pricePerLitre}," +
+                            "${mp.totalAmount}," +
+                            "${mp.isPaid}," +
+                            "${escapeCsv(mp.paymentDate)}," +
+                            "${escapeCsv(mp.notes)}," +
+                            "${mp.isSynced}," +
+                            "${mp.updatedAt}," +
+                            "${mp.createdAt}\n"
+                        )
+                    }
+                }
+            }
+            Result.success(purchases.size)
         } catch (e: Throwable) {
             Result.failure(e)
         }
@@ -642,7 +812,7 @@ class DatabaseBackupManager(
                     }
                     Result.success("Imported ${list.size} payments from CSV")
                 }
-                lowerHeader.contains("price_per_litre") -> {
+                lowerHeader.contains("price_per_litre") && !lowerHeader.contains("quantity") -> {
                     val list = mutableListOf<MilkRate>()
                     context.contentResolver.openInputStream(uri)?.use {
                         parseMilkRateCsv(BufferedReader(InputStreamReader(it, StandardCharsets.UTF_8)), list)
@@ -651,6 +821,26 @@ class DatabaseBackupManager(
                         list.chunked(500).forEach { db.milkRateDao().insertAll(it) }
                     }
                     Result.success("Imported ${list.size} milk price records from CSV")
+                }
+                lowerHeader.contains("supplier_name") -> {
+                    val list = mutableListOf<Supplier>()
+                    context.contentResolver.openInputStream(uri)?.use {
+                        parseSupplierCsv(BufferedReader(InputStreamReader(it, StandardCharsets.UTF_8)), list)
+                    }
+                    if (list.isNotEmpty()) {
+                        list.chunked(500).forEach { db.supplierDao().insertAll(it) }
+                    }
+                    Result.success("Imported ${list.size} suppliers from CSV")
+                }
+                lowerHeader.contains("supplier_id_fk") || (lowerHeader.contains("purchase_date") && lowerHeader.contains("quantity")) -> {
+                    val list = mutableListOf<MilkPurchase>()
+                    context.contentResolver.openInputStream(uri)?.use {
+                        parseMilkPurchaseCsv(BufferedReader(InputStreamReader(it, StandardCharsets.UTF_8)), list)
+                    }
+                    if (list.isNotEmpty()) {
+                        list.chunked(500).forEach { db.milkPurchaseDao().insertAll(it) }
+                    }
+                    Result.success("Imported ${list.size} milk purchases from CSV")
                 }
                 else -> {
                     Result.failure(Exception("Unrecognized CSV format or unsupported file type"))
@@ -836,6 +1026,86 @@ class DatabaseBackupManager(
             val p = parseCsvLine(line)
             if (p.size >= 2) {
                 out.add(AppSetting(key = p[0], value = p[1]))
+            }
+            line = reader.readLine()
+        }
+    }
+
+    private fun parseSupplierCsv(reader: BufferedReader, out: MutableList<Supplier>) {
+        val header = reader.readLine() ?: return
+        var line: String? = reader.readLine()
+        while (line != null) {
+            val p = parseCsvLine(line)
+            if (p.size >= 5) {
+                val id = p.getOrNull(0)?.toLongOrNull() ?: 0L
+                val name = p.getOrNull(1)?.takeIf { it.isNotBlank() } ?: "Supplier"
+                val mobile = p.getOrNull(2)?.takeIf { it.isNotBlank() }
+                val address = p.getOrNull(3)?.takeIf { it.isNotBlank() }
+                val rate = p.getOrNull(4)?.toBigDecimalOrNull() ?: BigDecimal("50.0")
+                val isActive = p.getOrNull(5)?.toIntOrNull() ?: 1
+                val sortOrder = p.getOrNull(6)?.toIntOrNull() ?: 0
+                val isSynced = p.getOrNull(7)?.toIntOrNull() ?: 0
+                val updatedAt = p.getOrNull(8)?.toLongOrNull() ?: System.currentTimeMillis()
+                val createdAt = p.getOrNull(9)?.toLongOrNull() ?: System.currentTimeMillis()
+
+                out.add(
+                    Supplier(
+                        id = id,
+                        name = name,
+                        mobile = mobile,
+                        address = address,
+                        defaultRate = rate,
+                        isActive = isActive,
+                        sortOrder = sortOrder,
+                        isSynced = isSynced,
+                        updatedAt = updatedAt,
+                        createdAt = createdAt
+                    )
+                )
+            }
+            line = reader.readLine()
+        }
+    }
+
+    private fun parseMilkPurchaseCsv(reader: BufferedReader, out: MutableList<MilkPurchase>) {
+        val header = reader.readLine() ?: return
+        var line: String? = reader.readLine()
+        while (line != null) {
+            val p = parseCsvLine(line)
+            if (p.size >= 7) {
+                val id = p.getOrNull(0)?.toLongOrNull() ?: 0L
+                val supplierId = p.getOrNull(1)?.toLongOrNull() ?: 0L
+                val date = p.getOrNull(2) ?: ""
+                val session = p.getOrNull(3) ?: "Morning"
+                val qty = p.getOrNull(4)?.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                val rate = p.getOrNull(5)?.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                val amount = p.getOrNull(6)?.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                val isPaid = p.getOrNull(7)?.toIntOrNull() ?: 0
+                val payDate = p.getOrNull(8)?.takeIf { it.isNotBlank() }
+                val notes = p.getOrNull(9)?.takeIf { it.isNotBlank() }
+                val isSynced = p.getOrNull(10)?.toIntOrNull() ?: 0
+                val updatedAt = p.getOrNull(11)?.toLongOrNull() ?: System.currentTimeMillis()
+                val createdAt = p.getOrNull(12)?.toLongOrNull() ?: System.currentTimeMillis()
+
+                if (supplierId > 0 && date.isNotBlank()) {
+                    out.add(
+                        MilkPurchase(
+                            id = id,
+                            supplierId = supplierId,
+                            purchaseDate = date,
+                            session = session,
+                            quantity = qty,
+                            pricePerLitre = rate,
+                            totalAmount = amount,
+                            isPaid = isPaid,
+                            paymentDate = payDate,
+                            notes = notes,
+                            isSynced = isSynced,
+                            updatedAt = updatedAt,
+                            createdAt = createdAt
+                        )
+                    )
+                }
             }
             line = reader.readLine()
         }

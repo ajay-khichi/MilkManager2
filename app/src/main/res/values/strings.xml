@@ -170,11 +170,13 @@
     <string name="export_data">Export Data</string>
     <string name="import_data">Import Data / Restore</string>
     <string name="export_all_tables_zip">Export All Tables (CSV ZIP)</string>
-    <string name="export_all_tables_zip_desc">All 6 database tables as individual CSVs with headers inside a ZIP archive</string>
+    <string name="export_all_tables_zip_desc">All 8 database tables as individual CSVs with headers inside a ZIP archive</string>
     <string name="export_full_json">Full Database Backup (JSON)</string>
     <string name="export_full_json_desc">Lossless complete backup for device-to-device transfer and restore</string>
     <string name="export_customers_csv">Customers Only (CSV)</string>
     <string name="export_transactions_csv">Transactions Only (CSV)</string>
+    <string name="export_suppliers_csv">Suppliers Only (CSV)</string>
+    <string name="export_purchases_csv">Milk Purchases Only (CSV)</string>
     <string name="choose_export_format">Choose Export Format</string>
     <string name="import_backup_hint">Supports ZIP (all tables CSV), JSON backup, and single table CSV files</string>
     <string name="export_success_stats">Exported successfully: %1$s</string>
@@ -201,4 +203,24 @@
     <string name="select_backup_to_restore">Select Backup to Restore</string>
     <string name="no_backups_found_on_drive">No backups found on Google Drive</string>
     <string name="connected_as">Connected: %1$s</string>
+
+    <!-- Milk Purchase (Procurement) -->
+    <string name="milk_purchase">Milk Purchase</string>
+    <string name="milk_purchase_procurement">Milk Purchase (दूध खरीद)</string>
+    <string name="daily_entry">Daily Entry</string>
+    <string name="monthly_summary">Monthly Summary</string>
+    <string name="add_supplier">Add Supplier</string>
+    <string name="edit_supplier">Edit Supplier</string>
+    <string name="supplier_name">Supplier Name</string>
+    <string name="default_rate_per_litre">Default Rate (₹/L)</string>
+    <string name="quantity_litres">Quantity (L)</string>
+    <string name="saved">Saved</string>
+    <string name="mark_as_paid">Mark Paid</string>
+    <string name="mark_unpaid">Mark Unpaid</string>
+    <string name="paid">Paid</string>
+    <string name="unpaid">Unpaid</string>
+    <string name="no_suppliers">No suppliers added yet</string>
+    <string name="add_supplier_hint">Add farmers or vendors from whom you purchase milk daily</string>
+    <string name="total_purchased">Total Milk Purchased</string>
+    <string name="today_procurement">Today\'s Procurement</string>
 </resources>

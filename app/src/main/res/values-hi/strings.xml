@@ -170,11 +170,13 @@
     <string name="export_data">डेटा एक्सपोर्ट करें</string>
     <string name="import_data">डेटा इम्पोर्ट / रिस्टोर करें</string>
     <string name="export_all_tables_zip">सभी टेबल्स एक्सपोर्ट करें (CSV ZIP)</string>
-    <string name="export_all_tables_zip_desc">डेटाबेस के सभी 6 टेबल्स हेडर के साथ एक ZIP फाइल में अलग-अलग CSV के रूप में</string>
+    <string name="export_all_tables_zip_desc">डेटाबेस के सभी 8 टेबल्स हेडर के साथ एक ZIP फाइल में अलग-अलग CSV के रूप में</string>
     <string name="export_full_json">संपूर्ण डेटाबेस बैकअप (JSON)</string>
     <string name="export_full_json_desc">दूसरे फोन में डेटा ट्रांसफर और रिस्टोर करने के लिए संपूर्ण सुरक्षित बैकअप</string>
     <string name="export_customers_csv">केवल ग्राहक (CSV)</string>
     <string name="export_transactions_csv">केवल दैनिक लेनदेन (CSV)</string>
+    <string name="export_suppliers_csv">केवल सप्लायर (CSV)</string>
+    <string name="export_purchases_csv">केवल दूध खरीद (CSV)</string>
     <string name="choose_export_format">एक्सपोर्ट का प्रारूप चुनें</string>
     <string name="import_backup_hint">ZIP (सभी टेबल्स), JSON बैकअप, या एकल CSV फाइल समर्थित हैं</string>
     <string name="export_success_stats">सफलतापूर्वक एक्सपोर्ट हुआ: %1$s</string>
@@ -201,4 +203,24 @@
     <string name="select_backup_to_restore">रीस्टोर करने के लिए बैकअप चुनें</string>
     <string name="no_backups_found_on_drive">गूगल ड्राइव पर कोई बैकअप नहीं मिला</string>
     <string name="connected_as">कनेक्टेड: %1$s</string>
+
+    <!-- Milk Purchase (Procurement) -->
+    <string name="milk_purchase">दूध खरीद</string>
+    <string name="milk_purchase_procurement">दूध खरीद (Purchase)</string>
+    <string name="daily_entry">दैनिक एंट्री</string>
+    <string name="monthly_summary">मासिक विवरण</string>
+    <string name="add_supplier">सप्लायर जोड़ें</string>
+    <string name="edit_supplier">सप्लायर संपादित करें</string>
+    <string name="supplier_name">सप्लायर का नाम</string>
+    <string name="default_rate_per_litre">दर (₹/लीटर)</string>
+    <string name="quantity_litres">मात्रा (लीटर)</string>
+    <string name="saved">दर्ज</string>
+    <string name="mark_as_paid">भुगतान हुआ (Mark Paid)</string>
+    <string name="mark_unpaid">अदत्त करें (Mark Unpaid)</string>
+    <string name="paid">चुकाया गया</string>
+    <string name="unpaid">बाकी</string>
+    <string name="no_suppliers">कोई सप्लायर नहीं है</string>
+    <string name="add_supplier_hint">जिन किसानों या व्यापारियों से दूध खरीदते हैं, उन्हें यहाँ जोड़ें</string>
+    <string name="total_purchased">कुल दूध खरीद</string>
+    <string name="today_procurement">आज की कुल खरीद</string>
 </resources>
