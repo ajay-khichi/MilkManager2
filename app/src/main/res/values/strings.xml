@@ -223,4 +223,11 @@
     <string name="add_supplier_hint">Add farmers or vendors from whom you purchase milk daily</string>
     <string name="total_purchased">Total Milk Purchased</string>
     <string name="today_procurement">Today\'s Procurement</string>
+
+    <!-- Clear Database Data -->
+    <string name="clear_database_data">Clear All Database Data</string>
+    <string name="clear_database_title">Clear All Database Data?</string>
+    <string name="clear_database_desc">Are you sure you want to delete all data? All customers, routes, daily transactions, payments, suppliers, and milk purchases will be permanently deleted. This action cannot be undone.</string>
+    <string name="clear_database_confirm">Delete Everything</string>
+    <string name="clear_database_success">All database data cleared successfully</string>
 </resources>

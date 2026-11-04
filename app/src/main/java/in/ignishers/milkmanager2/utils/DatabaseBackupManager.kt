@@ -23,6 +23,9 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.math.BigDecimal
 import java.nio.charset.StandardCharsets
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -70,6 +73,25 @@ class DatabaseBackupManager(
     private val db: AppDatabase
 ) {
     private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
+
+    // -------------------------------------------------------------------------
+    // CLEAR / TRUNCATE ENTIRE DATABASE
+    // Permanently removes all records and resets default rate to 60.0
+    // -------------------------------------------------------------------------
+    suspend fun clearEntireDatabase(): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            db.clearAllTables()
+            db.milkRateDao().insert(
+                MilkRate(
+                    price = BigDecimal("60.0"),
+                    effectiveDate = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+                )
+            )
+            Result.success(Unit)
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+    }
 
     // -------------------------------------------------------------------------
     // 1. ALL TABLES CSV EXPORT (ZIP Container with 6 CSV files)

@@ -223,4 +223,11 @@
     <string name="add_supplier_hint">जिन किसानों या व्यापारियों से दूध खरीदते हैं, उन्हें यहाँ जोड़ें</string>
     <string name="total_purchased">कुल दूध खरीद</string>
     <string name="today_procurement">आज की कुल खरीद</string>
+
+    <!-- Clear Database Data -->
+    <string name="clear_database_data">डेटाबेस खाली करें (Reset Data)</string>
+    <string name="clear_database_title">डेटाबेस का पूरा डेटा हटाएं?</string>
+    <string name="clear_database_desc">क्या आप वाकई सारा डेटा हटाना चाहते हैं? सभी ग्राहक, रूट्स, दैनिक प्रविष्टियाँ, पेमेंट्स, सप्लायर और खरीद रिकॉर्ड हमेशा के लिए मिट जाएंगे। इसे वापस नहीं लाया जा सकता।</string>
+    <string name="clear_database_confirm">हाँ, सब हटाएं</string>
+    <string name="clear_database_success">डेटाबेस सफलतापूर्वक खाली कर दिया गया</string>
 </resources>

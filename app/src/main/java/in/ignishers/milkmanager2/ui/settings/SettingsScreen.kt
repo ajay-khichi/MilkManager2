@@ -56,6 +56,7 @@ fun SettingsScreen(onBack: () -> Unit) {
     var selectedLangCode by remember { mutableStateOf(LocaleHelper.getSelectedLanguageCode()) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
+    var showClearDbDialog by remember { mutableStateOf(false) }
 
     var googleAccount by remember { mutableStateOf(GoogleDriveManager.getSignedInAccount(context)) }
     var isDriveLoading by remember { mutableStateOf(false) }
@@ -377,6 +378,30 @@ fun SettingsScreen(onBack: () -> Unit) {
                         Text(
                             text = stringResource(R.string.test_notification),
                             style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    // Clear / Truncate All Database Data Button
+                    OutlinedButton(
+                        onClick = { showClearDbDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_delete_forever),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.clear_database_data),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                 }
@@ -1027,6 +1052,66 @@ fun SettingsScreen(onBack: () -> Unit) {
                 confirmButton = {},
                 dismissButton = {
                     TextButton(onClick = { showDriveRestoreDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        // Clear / Truncate All Database Data Confirmation Dialog
+        if (showClearDbDialog) {
+            AlertDialog(
+                onDismissRequest = { showClearDbDialog = false },
+                icon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_delete_forever),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(36.dp)
+                    )
+                },
+                title = {
+                    Text(
+                        text = stringResource(R.string.clear_database_title),
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(
+                        text = stringResource(R.string.clear_database_desc),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showClearDbDialog = false
+                            coroutineScope.launch {
+                                val res = backupManager.clearEntireDatabase()
+                                if (res.isSuccess) {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.clear_database_success),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Error: ${res.exceptionOrNull()?.message}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text(stringResource(R.string.clear_database_confirm))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showClearDbDialog = false }) {
                         Text(stringResource(R.string.cancel))
                     }
                 }
