@@ -58,6 +58,35 @@ object GoogleDriveManager {
         }
     }
 
+    /**
+     * Reads the SHA-1 signing fingerprint of the running app certificate.
+     * Crucial for debugging and configuring Google Cloud Console OAuth 2.0 Client IDs.
+     */
+    fun getAppSha1Fingerprint(context: Context): String {
+        return try {
+            val packageInfo = context.packageManager.getPackageInfo(
+                context.packageName,
+                android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            )
+            val signingInfo = packageInfo.signingInfo
+            val signatures = if (signingInfo != null) {
+                if (signingInfo.hasMultipleSigners()) {
+                    signingInfo.apkContentsSigners
+                } else {
+                    signingInfo.signingCertificateHistory ?: signingInfo.apkContentsSigners
+                }
+            } else {
+                null
+            }
+            val cert = signatures?.firstOrNull()?.toByteArray() ?: return "Unknown"
+            val md = java.security.MessageDigest.getInstance("SHA-1")
+            val digest = md.digest(cert)
+            digest.joinToString(":") { String.format("%02X", it) }
+        } catch (e: Exception) {
+            "Unable to determine SHA-1: ${e.message}"
+        }
+    }
+
     suspend fun signOut(context: Context): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             Tasks.await(getSignInClient(context).signOut())

@@ -230,4 +230,18 @@
     <string name="clear_database_desc">क्या आप वाकई सारा डेटा हटाना चाहते हैं? सभी ग्राहक, रूट्स, दैनिक प्रविष्टियाँ, पेमेंट्स, सप्लायर और खरीद रिकॉर्ड हमेशा के लिए मिट जाएंगे। इसे वापस नहीं लाया जा सकता।</string>
     <string name="clear_database_confirm">हाँ, सब हटाएं</string>
     <string name="clear_database_success">डेटाबेस सफलतापूर्वक खाली कर दिया गया</string>
+
+    <!-- Google Auth Setup Guide / Error 10 -->
+    <string name="google_auth_setup_title">Google Cloud सेटअप आवश्यक</string>
+    <string name="google_auth_error_10_desc">Google Play Services ने Developer Error (Code 10) दिया है। यह तब होता है जब Google Cloud Console में ऐप का SHA-1 फिंगरप्रिंट और पैकेज नाम पंजीकृत नहीं होता, या Google Drive API सक्षम (Enable) नहीं होती।</string>
+    <string name="google_app_package">पैकेज नाम (Package Name)</string>
+    <string name="google_app_sha1">ऐप साइनिंग SHA-1</string>
+    <string name="copy_to_clipboard">कॉपी करें</string>
+    <string name="copied">क्लिपबोर्ड पर कॉपी किया गया!</string>
+    <string name="google_setup_step1">1. Google Cloud Console (console.cloud.google.com) खोलें और प्रोजेक्ट चुनें।</string>
+    <string name="google_setup_step2">2. \'Enabled APIs &amp; Services\' में जाकर \'Google Drive API\' को सक्षम (Enable) करें।</string>
+    <string name="google_setup_step3">3. \'OAuth consent screen\' में जाकर अपने जीमेल को \'Test users\' में जोड़ें।</string>
+    <string name="google_setup_step4">4. \'Credentials\' में \'OAuth 2.0 Client ID\' (Type: Android) बनाएं और नीचे दिया गया पैकेज नाम व SHA-1 दर्ज करें।</string>
+    <string name="got_it">समझ गया</string>
+    <string name="google_setup_guide">सेटअप गाइड</string>
 </resources>

@@ -20,10 +20,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +41,7 @@ import `in`.ignishers.milkmanager2.utils.DatabaseBackupManager
 import `in`.ignishers.milkmanager2.utils.LocaleHelper
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.text.SimpleDateFormat
@@ -63,6 +67,7 @@ fun SettingsScreen(onBack: () -> Unit) {
     var driveLoadingMessage by remember { mutableStateOf("") }
     var driveBackupsList by remember { mutableStateOf<List<DriveBackupItem>?>(null) }
     var showDriveRestoreDialog by remember { mutableStateOf(false) }
+    var showGoogleSetupGuideDialog by remember { mutableStateOf(false) }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -72,6 +77,13 @@ fun SettingsScreen(onBack: () -> Unit) {
             val account = task.getResult(ApiException::class.java)
             googleAccount = account
             Toast.makeText(context, context.getString(R.string.connected_as, account.email ?: ""), Toast.LENGTH_SHORT).show()
+        } catch (e: ApiException) {
+            if (e.statusCode == CommonStatusCodes.DEVELOPER_ERROR) {
+                showGoogleSetupGuideDialog = true
+            } else {
+                val errorMsg = CommonStatusCodes.getStatusCodeString(e.statusCode)
+                Toast.makeText(context, "Google Sign-In error (${e.statusCode}: $errorMsg)", Toast.LENGTH_LONG).show()
+            }
         } catch (e: Exception) {
             Toast.makeText(context, "Sign-in error: ${e.localizedMessage ?: e.message}", Toast.LENGTH_LONG).show()
         }
@@ -438,6 +450,14 @@ fun SettingsScreen(onBack: () -> Unit) {
                                 text = stringResource(R.string.google_drive_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        TextButton(
+                            onClick = { showGoogleSetupGuideDialog = true }
+                        ) {
+                            Text(
+                                text = stringResource(R.string.google_setup_guide),
+                                style = MaterialTheme.typography.labelMedium
                             )
                         }
                     }
@@ -1113,6 +1133,153 @@ fun SettingsScreen(onBack: () -> Unit) {
                 dismissButton = {
                     TextButton(onClick = { showClearDbDialog = false }) {
                         Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        // Google Drive Auth Setup Guide Dialog (Triggered on Error 10 or Help button)
+        if (showGoogleSetupGuideDialog) {
+            val clipboardManager = LocalClipboardManager.current
+            val sha1 = remember { GoogleDriveManager.getAppSha1Fingerprint(context) }
+            val packageName = context.packageName
+
+            AlertDialog(
+                onDismissRequest = { showGoogleSetupGuideDialog = false },
+                icon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_google_drive),
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        tint = androidx.compose.ui.graphics.Color.Unspecified
+                    )
+                },
+                title = {
+                    Text(
+                        text = stringResource(R.string.google_auth_setup_title),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.google_auth_error_10_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        // Package Name Card
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.google_app_package),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = packageName,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                TextButton(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(packageName))
+                                        Toast.makeText(context, context.getString(R.string.copied), Toast.LENGTH_SHORT).show()
+                                    }
+                                ) {
+                                    Text(stringResource(R.string.copy_to_clipboard))
+                                }
+                            }
+                        }
+
+                        // SHA-1 Card
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.google_app_sha1),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = sha1,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                                TextButton(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(sha1))
+                                        Toast.makeText(context, context.getString(R.string.copied), Toast.LENGTH_SHORT).show()
+                                    }
+                                ) {
+                                    Text(stringResource(R.string.copy_to_clipboard))
+                                }
+                            }
+                        }
+
+                        // Steps Instructions
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "Setup Steps:",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = stringResource(R.string.google_setup_step1),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                text = stringResource(R.string.google_setup_step2),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                text = stringResource(R.string.google_setup_step3),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                text = stringResource(R.string.google_setup_step4),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { showGoogleSetupGuideDialog = false }) {
+                        Text(stringResource(R.string.got_it))
                     }
                 }
             )

@@ -230,4 +230,18 @@
     <string name="clear_database_desc">Are you sure you want to delete all data? All customers, routes, daily transactions, payments, suppliers, and milk purchases will be permanently deleted. This action cannot be undone.</string>
     <string name="clear_database_confirm">Delete Everything</string>
     <string name="clear_database_success">All database data cleared successfully</string>
+
+    <!-- Google Auth Setup Guide / Error 10 -->
+    <string name="google_auth_setup_title">Google Cloud Setup Required</string>
+    <string name="google_auth_error_10_desc">Google Play Services returned Developer Error (Code 10). This happens when the app\'s SHA-1 fingerprint and package name are not registered in Google Cloud Console, or Google Drive API is not enabled.</string>
+    <string name="google_app_package">Package Name</string>
+    <string name="google_app_sha1">App Signing SHA-1</string>
+    <string name="copy_to_clipboard">Copy</string>
+    <string name="copied">Copied to clipboard!</string>
+    <string name="google_setup_step1">1. Open Google Cloud Console (console.cloud.google.com) and select your project.</string>
+    <string name="google_setup_step2">2. In \'Enabled APIs &amp; Services\', search and enable \'Google Drive API\'.</string>
+    <string name="google_setup_step3">3. Under \'OAuth consent screen\', add your Gmail account to \'Test users\'.</string>
+    <string name="google_setup_step4">4. In \'Credentials\', create an \'OAuth 2.0 Client ID\' of type \'Android\' with the package name and SHA-1 shown below.</string>
+    <string name="got_it">Got It</string>
+    <string name="google_setup_guide">Setup Guide</string>
 </resources>
