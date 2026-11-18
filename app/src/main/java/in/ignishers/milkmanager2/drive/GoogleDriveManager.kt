@@ -59,7 +59,7 @@ object GoogleDriveManager {
     }
 
     /**
-     * Reads the SHA-1 signing fingerprint of the running app certificate.
+     * Reads the SHA-256 signing fingerprint of the running app certificate.
      * Crucial for debugging and configuring Google Cloud Console OAuth 2.0 Client IDs.
      */
     fun getAppSha1Fingerprint(context: Context): String {
@@ -79,11 +79,11 @@ object GoogleDriveManager {
                 null
             }
             val cert = signatures?.firstOrNull()?.toByteArray() ?: return "Unknown"
-            val md = java.security.MessageDigest.getInstance("SHA-1")
+            val md = java.security.MessageDigest.getInstance("SHA-256")
             val digest = md.digest(cert)
             digest.joinToString(":") { String.format("%02X", it) }
         } catch (e: Exception) {
-            "Unable to determine SHA-1: ${e.message}"
+            "Unable to determine SHA-256: ${e.message}"
         }
     }
 
