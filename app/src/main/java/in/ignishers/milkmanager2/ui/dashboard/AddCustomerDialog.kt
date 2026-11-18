@@ -26,6 +26,28 @@ import `in`.ignishers.milkmanager2.models.Customer
 import java.math.BigDecimal
 import java.math.RoundingMode
 
+/**
+ * Converts a quantity value from the given unit into litres.
+ * Pure function — no side effects, safe to call from any context.
+ */
+private fun toLiters(value: BigDecimal, fromUnit: String, milkRate: BigDecimal, scale: Int = 4): BigDecimal =
+    when (fromUnit) {
+        "ml"     -> value.divide(BigDecimal("1000.0"), scale, RoundingMode.HALF_UP)
+        "Rupees" -> if (milkRate > BigDecimal.ZERO) value.divide(milkRate, scale, RoundingMode.HALF_UP) else BigDecimal.ZERO
+        else     -> value  // already Litres
+    }
+
+/**
+ * Converts a quantity value from litres into the target unit.
+ * Pure function — no side effects, safe to call from any context.
+ */
+private fun fromLiters(baseLiters: BigDecimal, toUnit: String, milkRate: BigDecimal): BigDecimal =
+    when (toUnit) {
+        "ml"     -> baseLiters.multiply(BigDecimal("1000.0")).stripTrailingZeros()
+        "Rupees" -> baseLiters.multiply(milkRate).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros()
+        else     -> baseLiters.stripTrailingZeros()  // Litres
+    }
+
 @Composable
 fun UnitSegmentedButtons(
     selectedUnit: String,
@@ -122,35 +144,11 @@ fun AddCustomerDialog(
         val mVal = morningQtyStr.toBigDecimalOrNull()
         val eVal = eveningQtyStr.toBigDecimalOrNull()
 
-        if (mVal != null && mVal > BigDecimal.ZERO) {
-            val baseLiters = when (entryMode) {
-                "Litres" -> mVal
-                "ml" -> mVal.divide(BigDecimal("1000.0"), 4, RoundingMode.HALF_UP)
-                "Rupees" -> if (milkRate > BigDecimal.ZERO) mVal.divide(milkRate, 4, RoundingMode.HALF_UP) else BigDecimal.ZERO
-                else -> mVal
-            }
-            morningQtyStr = when (newUnit) {
-                "Litres" -> baseLiters.stripTrailingZeros().toPlainString()
-                "ml" -> baseLiters.multiply(BigDecimal("1000.0")).stripTrailingZeros().toPlainString()
-                "Rupees" -> baseLiters.multiply(milkRate).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
-                else -> baseLiters.toPlainString()
-            }
-        }
+        if (mVal != null && mVal > BigDecimal.ZERO)
+            morningQtyStr = fromLiters(toLiters(mVal, entryMode, milkRate), newUnit, milkRate).toPlainString()
 
-        if (eVal != null && eVal > BigDecimal.ZERO) {
-            val baseLiters = when (entryMode) {
-                "Litres" -> eVal
-                "ml" -> eVal.divide(BigDecimal("1000.0"), 4, RoundingMode.HALF_UP)
-                "Rupees" -> if (milkRate > BigDecimal.ZERO) eVal.divide(milkRate, 4, RoundingMode.HALF_UP) else BigDecimal.ZERO
-                else -> eVal
-            }
-            eveningQtyStr = when (newUnit) {
-                "Litres" -> baseLiters.stripTrailingZeros().toPlainString()
-                "ml" -> baseLiters.multiply(BigDecimal("1000.0")).stripTrailingZeros().toPlainString()
-                "Rupees" -> baseLiters.multiply(milkRate).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
-                else -> baseLiters.toPlainString()
-            }
-        }
+        if (eVal != null && eVal > BigDecimal.ZERO)
+            eveningQtyStr = fromLiters(toLiters(eVal, entryMode, milkRate), newUnit, milkRate).toPlainString()
 
         entryMode = newUnit
     }
@@ -174,31 +172,22 @@ fun AddCustomerDialog(
     fun saveCustomer() {
         if (name.isBlank()) return
         keyboardController?.hide()
-        val morningVal = morningQtyStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
-        val eveningVal = eveningQtyStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
-        val openingDue = openingDueStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        val morningVal  = morningQtyStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        val eveningVal  = eveningQtyStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        val openingDue  = openingDueStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
 
-        val morningLiters = when (entryMode) {
-            "Rupees" -> if (milkRate > BigDecimal.ZERO) morningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
-            "ml" -> morningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
-            else -> morningVal
-        }
-
-        val eveningLiters = when (entryMode) {
-            "Rupees" -> if (milkRate > BigDecimal.ZERO) eveningVal.divide(milkRate, 3, RoundingMode.HALF_UP) else BigDecimal.ZERO
-            "ml" -> eveningVal.divide(BigDecimal("1000.0"), 3, RoundingMode.HALF_UP)
-            else -> eveningVal
-        }
+        val morningLiters = toLiters(morningVal, entryMode, milkRate, scale = 3)
+        val eveningLiters = toLiters(eveningVal, entryMode, milkRate, scale = 3)
 
         val customer = initialCustomer ?: Customer()
         customer.apply {
-            this.name = name.trim()
-            this.mobile = mobile.trim()
+            this.name             = name.trim()
+            this.mobile           = mobile.trim()
             this.defaultQtyMorning = morningLiters
             this.defaultQtyEvening = eveningLiters
-            this.currentDue = openingDue
+            this.currentDue       = openingDue
             if (initialCustomer == null) {
-                this.sortOrder = 0
+                this.sortOrder    = 0
                 this.syncSellerId = null
             }
         }
